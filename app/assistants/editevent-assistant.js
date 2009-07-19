@@ -18,7 +18,7 @@ EditeventAssistant.prototype.setup = function() {
 	this.dateModel = { value: new Date() };
 	this.descriptionModel = { value: this.ddEvent.description };
 	this.subtotalModel = { value: this.formatDecimal(this.ddEvent.subtotal) };
-	this.tipPercentModel = { value: 15 };
+	this.tipPercentModel = { value: this.ddEvent.tipPercent };
 	this.totalModel = { value: this.formatDecimal(this.ddEvent.total) };
 
 	this.controller.setupWidget('date',
@@ -46,10 +46,9 @@ EditeventAssistant.prototype.setup = function() {
 
 	this.controller.setupWidget('tipPercent',
 		{
-			min: 0,
-			max: 50,
+			hintText: $L("Tip..."),
 			modelProperty: 'value',
-			label: ' ',
+			maxLength: 6,
 		},
 		this.tipPercentModel);
 
@@ -76,8 +75,8 @@ EditeventAssistant.prototype.setup = function() {
 	);
 
 	/* add event handlers to listen to events from widgets */
-	Mojo.Event.listen($('subtotal'), Mojo.Event.propertyChange, this.subtotalChanged.bind(this));
-	Mojo.Event.listen($('tipPercent'), Mojo.Event.propertyChange, this.tipPercentChanged.bind(this));
+	this.controller.listen('subtotal', Mojo.Event.propertyChange, this.subtotalChanged.bind(this));
+	this.controller.listen('tipPercent', Mojo.Event.propertyChange, this.tipPercentChanged.bind(this));
 	Mojo.Event.listen($('total'), Mojo.Event.propertyChange, this.totalChanged.bind(this));
 	Mojo.Event.listen($('peopleList'), Mojo.Event.listTap, this.handlePeopleTap.bind(this));
 }
@@ -125,7 +124,7 @@ EditeventAssistant.prototype.formatDecimal = function(val) {
 	if (val == 0) {
 		return '';
 	}
-	return Mojo.format.formatNumber(val / 100.0, 2);
+	return Mojo.Format.formatNumber(val / 100.0, 2);
 }
 
 EditeventAssistant.prototype.formatName = function(val, obj) {
@@ -166,19 +165,57 @@ EditeventAssistant.prototype.handlePeopleTap = function(event) {
  * Handles a change to the subtotal field.
  */
 EditeventAssistant.prototype.subtotalChanged = function(event) {
-	
+	var subtotal = parseFloat(event.value);
+	if (subtotal != Number.NaN) {
+		this.ddEvent.setSubtotal(Math.floor(subtotal * 100));
+
+		$('total').mojo.setValue(this.formatDecimal(this.ddEvent.getTotal()));
+		var tipAmount = this.ddEvent.getTipAmount();
+		if (tipAmount) {
+			$('tipAmount').innerHTML = '(' + this.formatTotal(tipAmount) + ')';
+		} else {
+			$('tipAmount').innerHTML = '';
+		}
+	} else {
+		$('subtotal').mojo.setValue(this.formatDecimal(this.ddEvent.getSubtotal()));
+	}
 }
 
 /**
  * Handles a change to the tip percent field.
  */
 EditeventAssistant.prototype.tipPercentChanged = function(event) {
-	
+	var percent = parseFloat(event.value);
+	if (percent != Number.NaN) {
+		this.ddEvent.setTipPercent(percent);
+
+		$('total').mojo.setValue(this.formatDecimal(this.ddEvent.getTotal()));
+		var tipAmount = this.ddEvent.getTipAmount();
+		if (tipAmount) {
+			$('tipAmount').innerHTML = '(' + this.formatTotal(tipAmount) + ')';
+		} else {
+			$('tipAmount').innerHTML = '';
+		}
+	} else {
+		$('tipPercent').mojo.setValue(this.ddEvent.tipPercent);
+	}
 }
 
 /**
  * Handles a change to the total field.
  */
 EditeventAssistant.prototype.totalChanged = function(event) {
-	
+	var total = parseFloat(event.value);
+	if (total != Number.NaN) {
+		this.ddEvent.setTotal(Math.floor(total * 100));
+
+		var tipPercent = this.ddEvent.getTipPercent();
+		var tipAmount = this.ddEvent.getTipAmount();
+		var subtotal = this.ddEvent.getSubtotal();
+		$('tipPercent').mojo.setValue(tipPercent ? tipPercent : '');
+		$('subtotal').mojo.setValue(subtotal ? this.formatDecimal(subtotal) : '');
+		$('tipAmount').innerHTML = tipAmount ? ('(' + this.formatTotal(tipAmount) + ')') : '';
+	} else {
+		$('total').mojo.setValue(this.formatDecimal(this.ddEvent.getTotal()));
+	}
 }

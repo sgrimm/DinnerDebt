@@ -19,9 +19,10 @@
 
 #tipPercent {
 	position: absolute;
-	top: 80px;
+	top: 116px;
 	left: 29%;
-	width: 10%;
+	width: 15%;
+	text-align: right;
 }
 
 #tipSuffix {
@@ -32,6 +33,7 @@
 
 #tipAmount {
 	font-size: medium;
+	vertical-align: middle;
 }
 
 #total {

@@ -50,6 +50,71 @@ var DDEvent = Class.create({
 	 */
 	participations : [],
 
+	/**
+	 * Sets the subtotal, adjusting the total accordingly.
+	 */
+	setSubtotal : function(amount) {
+		this.subtotal = amount;
+		this.total = this.subtotal + this.getTipAmount();
+	},
+
+	/**
+	 * Sets the tip percentage, adjusting the total accordingly.
+	 */
+	setTipPercent : function(percent) {
+		this.tipPercent = percent;
+		this.total = this.subtotal + this.getTipAmount();
+	},
+
+	/**
+	 * Sets the total, adjusting the tip percentage (and possibly subtotal) accordingly.
+	 */
+	setTotal : function(total) {
+		this.total = total;
+		if (!this.subtotal) {
+			if (!this.tipPercent) {
+				// No tip, no subtotal: set subtotal to total
+				this.subtotal = this.total;
+			} else {
+				// Tip, no subtotal: set subtotal to total minus tip
+				this.subtotal = this.total / ((this.tipPercent + 100) / 100.0);
+			}
+		} else {
+			// Subtotal: set tip percentage, overriding existing value if any
+			this.tipPercent = ((this.total / this.subtotal) * 100) - 100;
+		}
+	},
+
+	/**
+	 * Returns the subtotal in cents.
+	 */
+	getSubtotal : function() {
+		return this.subtotal;
+	},
+
+	/**
+	 * Returns the total in cents.
+	 */	
+	getTotal: function() {
+		return this.total;
+	},
+	
+	/**
+	 * Returns the tip percentage.
+	 */
+	getTipPercent: function() {
+		return this.tipPercent;
+	},
+
+	/**
+	 * Returns the tip amount in cents.
+	 */	
+	getTipAmount: function() {
+		if (this.subtotal == 0 || this.tipPercent == 0) {
+			return 0;
+		}
+		return Math.round((this.subtotal * this.tipPercent) / 100.0);
+	},
 });
 
 
