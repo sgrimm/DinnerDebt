@@ -1,0 +1,9 @@
+{
+	"id": "com.midwinter.dinnerdebt",
+	"version": "1.0.0",
+	"vendor": "Midwinter",
+	"type": "web",
+	"main": "index.html",
+	"title": "DinnerDebt",
+	"icon": "icon.png"
+}

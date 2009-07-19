@@ -1,0 +1,75 @@
+/* Put Application specific CSS here. */
+.dd-balance-negative { color: #ff0000; font-style: italic; }
+.dd-balance-positive { color: #00f000; }
+.dd-list-item { padding-left: .5em; }
+.dd-bottom { bottom: 0; }
+
+#subtotal {
+	position: absolute;
+	top: 116px;
+	left: 1%;
+	width: 23%;
+}
+
+#subtotalPlusSign {
+	position: absolute;
+	top: 116px;
+	left: 25%;
+}
+
+#tipPercent {
+	position: absolute;
+	top: 80px;
+	left: 29%;
+	width: 10%;
+}
+
+#tipSuffix {
+	position: absolute;
+	top: 116px;
+	left: 47%;
+}
+
+#tipAmount {
+	font-size: medium;
+}
+
+#total {
+	position: absolute;
+	top: 116px;
+	left: 77%;
+	width: 23%;
+}
+
+.scene-footer {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+}
+.scene-footer-wrapper { margin-top: -10px; }
+.scene-footer-spacer { padding-bottom: 80px; }
+
+.palm-header {
+	z-index: 1000001;
+}
+
+/* This is totally gross */
+.scene-fade-top {
+	position: fixed;
+	top: 0;
+	z-index: 100;
+	height: 54px;	/* yay hardwiring */
+	width: 100%;
+	background: url(../images/scene-fade-top.png) top center repeat-x;
+	-webkit-palm-mouse-target: ignore;
+}
+
+.scene-fade-bottom {
+	position: fixed;
+	bottom: 0;
+	height: 54px;
+	width: 100%;
+	background: url(../images/scene-fade-bottom.png) bottom center repeat-x;
+	-webkit-palm-mouse-target: ignore;
+}

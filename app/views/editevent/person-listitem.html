@@ -1,0 +1,21 @@
+<div class="palm-row" x-mojo-tap-highlight="momentary">
+	<div class="palm-row-wrapper">
+		<div class="label">
+			#{-isPayerFormatted} #{totalFormatted} 
+		</div>
+		<div class="title dd-list-item">
+			<div id="shareCheckbox#{id}" x-mojo-element="CheckBox"></div>
+			#{name}
+		</div>
+
+		<div id="personDrawer#{id}" style="z-index: 5000" x-mojo-element="Drawer">
+			<div class="palm-group unlabeled">
+				<div class="palm-row">
+					<div class="palm-row-wrapper">
+						<div id="personAmount#{id}" x-mojo-element="TextField"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

@@ -1,0 +1,17 @@
+[
+    {"source": "app\/assistants\/stage-assistant.js"},
+    {
+        "scenes": "people",
+        "source": "app\/assistants\/people-assistant.js"
+    },
+    {
+        "scenes": "events",
+        "source": "app\/assistants\/events-assistant.js"
+    },
+    {
+        "scenes": "editevent",
+        "source": "app\/assistants\/editevent-assistant.js"
+    },
+    {"source": "app\/model\/person.js"},
+    {"source": "app\/model\/ddevent.js"},
+]

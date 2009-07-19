@@ -1,0 +1,39 @@
+<div id="main" class="palm-noheader">
+	<div class="scene-fade-top" x-mojo-scroll-fade="top"></div>
+	<div class="scene-fade-bottom" x-mojo-scroll-fade="bottom"></div>
+
+	<div class="palm-row"><div class="palm-row-wrapper">
+		<div id="date" x-mojo-element="DatePicker"></div>
+	</div></div>
+
+	<div class="palm-row"><div class="palm-row-wrapper">
+		<div id="description" x-mojo-element="TextField"></div>
+	</div></div>
+
+<!--
+	<div class="palm-row"><div class="palm-row-wrapper">
+		<div id="subtotal" class="mytext" x-mojo-element="TextField"></div>
+	</div></div>
+	<div class="palm-row"><div class="palm-row-wrapper">
+		<div id="tipPercent" class="mytext" x-mojo-element="TextField"></div>
+	</div></div>
+	<div class="palm-row"><div class="palm-row-wrapper">
+		<div id="tipAmount" x-mojo-element="TextField"></div>
+	</div></div>
+	<div class="palm-row"><div class="palm-row-wrapper">
+		<div id="total" x-mojo-element="TextField"></div>
+	</div></div>
+-->
+
+	<div class="palm-row">
+			<div id="subtotal" x-mojo-element="TextField"></div>
+			<div id="subtotalPlusSign">+</div>
+			<div id="tipPercent" x-mojo-element="IntegerPicker"></div>
+			<div id="tipSuffix">
+				% <span id="tipAmount">($15.35)</span> =
+			</div>
+			<div id="total" x-mojo-element="TextField"></div>		
+	</div>
+
+	<div id="peopleList" class="palm-list" x-mojo-element="List"></div>
+</div>
