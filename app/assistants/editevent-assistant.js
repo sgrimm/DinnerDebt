@@ -107,6 +107,11 @@ EditeventAssistant.prototype.itemRenderedCallback = function(listWidget, itemMod
 	var id = itemModel.id;
 	
 	this.controller.setupWidget('shareCheckbox' + id, {}, this.shareCheckboxModels[id]);
+	this.controller.setupWidget('drawerButton' + id,
+		{
+			label: '+'
+		}
+	);
 	this.controller.setupWidget('personDrawer' + id, {}, {open:false});
 }
 
@@ -124,7 +129,20 @@ EditeventAssistant.prototype.formatDecimal = function(val) {
 	if (val == 0) {
 		return '';
 	}
-	return Mojo.Format.formatNumber(val / 100.0, 2);
+	val /= 100.0;
+
+	// Just use the raw string representation of the non-fractional part
+	// of the amount; don't want commas inserted.
+	var nonfractional = Math.floor(val);
+	var str = '' + nonfractional;
+
+	// But we do want to use a locale-appropriate decimal point, so let
+	// Mojo.Format.formatNumber take care of that.
+	var decimal = Mojo.Format.formatNumber(val - nonfractional, 2);
+	if (decimal.charAt(0) == '0') {
+		return str + decimal.substring(1);
+	}
+	return str + decimal;
 }
 
 EditeventAssistant.prototype.formatName = function(val, obj) {
@@ -165,20 +183,14 @@ EditeventAssistant.prototype.handlePeopleTap = function(event) {
  * Handles a change to the subtotal field.
  */
 EditeventAssistant.prototype.subtotalChanged = function(event) {
+Mojo.Log.info("subtotal value is",event.value);
 	var subtotal = parseFloat(event.value);
+Mojo.Log.info("subtotal float is",subtotal);
 	if (subtotal != Number.NaN) {
 		this.ddEvent.setSubtotal(Math.floor(subtotal * 100));
-
-		$('total').mojo.setValue(this.formatDecimal(this.ddEvent.getTotal()));
-		var tipAmount = this.ddEvent.getTipAmount();
-		if (tipAmount) {
-			$('tipAmount').innerHTML = '(' + this.formatTotal(tipAmount) + ')';
-		} else {
-			$('tipAmount').innerHTML = '';
-		}
-	} else {
-		$('subtotal').mojo.setValue(this.formatDecimal(this.ddEvent.getSubtotal()));
+Mojo.Log.info("subtotal field is", this.ddEvent.getSubtotal());
 	}
+	this.updateEventTotals();
 }
 
 /**
@@ -188,17 +200,8 @@ EditeventAssistant.prototype.tipPercentChanged = function(event) {
 	var percent = parseFloat(event.value);
 	if (percent != Number.NaN) {
 		this.ddEvent.setTipPercent(percent);
-
-		$('total').mojo.setValue(this.formatDecimal(this.ddEvent.getTotal()));
-		var tipAmount = this.ddEvent.getTipAmount();
-		if (tipAmount) {
-			$('tipAmount').innerHTML = '(' + this.formatTotal(tipAmount) + ')';
-		} else {
-			$('tipAmount').innerHTML = '';
-		}
-	} else {
-		$('tipPercent').mojo.setValue(this.ddEvent.tipPercent);
 	}
+	this.updateEventTotals();
 }
 
 /**
@@ -208,14 +211,20 @@ EditeventAssistant.prototype.totalChanged = function(event) {
 	var total = parseFloat(event.value);
 	if (total != Number.NaN) {
 		this.ddEvent.setTotal(Math.floor(total * 100));
-
-		var tipPercent = this.ddEvent.getTipPercent();
-		var tipAmount = this.ddEvent.getTipAmount();
-		var subtotal = this.ddEvent.getSubtotal();
-		$('tipPercent').mojo.setValue(tipPercent ? tipPercent : '');
-		$('subtotal').mojo.setValue(subtotal ? this.formatDecimal(subtotal) : '');
-		$('tipAmount').innerHTML = tipAmount ? ('(' + this.formatTotal(tipAmount) + ')') : '';
-	} else {
-		$('total').mojo.setValue(this.formatDecimal(this.ddEvent.getTotal()));
 	}
+	this.updateEventTotals();
+}
+
+/**
+ * Updates the event money fields.
+ */
+EditeventAssistant.prototype.updateEventTotals = function() {
+	var tipPercent = this.ddEvent.getTipPercent();
+	var tipAmount = this.ddEvent.getTipAmount();
+	var subtotal = this.ddEvent.getSubtotal();
+	var total = this.ddEvent.getTotal();
+	$('tipPercent').mojo.setValue(tipPercent ? tipPercent : null);
+	$('subtotal').mojo.setValue(subtotal ? this.formatDecimal(subtotal) : '');
+	$('total').mojo.setValue(total ? this.formatDecimal(total) : '');
+	$('tipAmount').innerHTML = tipAmount ? ('(' + this.formatTotal(tipAmount) + ')') : '';
 }

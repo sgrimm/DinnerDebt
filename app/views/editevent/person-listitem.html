@@ -1,7 +1,8 @@
 <div class="palm-row" x-mojo-tap-highlight="momentary">
 	<div class="palm-row-wrapper">
 		<div class="label">
-			#{-isPayerFormatted} #{totalFormatted} 
+			#{-isPayerFormatted}
+			<span id="total#{id}" class="dd-bordered">#{totalFormatted}</span>
 		</div>
 		<div class="title dd-list-item">
 			<div id="shareCheckbox#{id}" x-mojo-element="CheckBox"></div>

@@ -4,6 +4,11 @@
 .dd-list-item { padding-left: .5em; }
 .dd-bottom { bottom: 0; }
 
+.dd-bordered {
+	-webkit-border-image: url(../images/selector-header-gray.png) 15 repeat repeat;
+	border: 16px;
+}
+
 #subtotal {
 	position: absolute;
 	top: 116px;
