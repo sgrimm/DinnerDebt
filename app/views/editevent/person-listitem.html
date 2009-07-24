@@ -5,15 +5,25 @@
 			<span id="total#{id}" class="dd-bordered dd-drawer-button" x-mojo-tap-highlight="momentary">#{totalFormatted}</span>
 		</div>
 		<div class="title dd-list-item">
-			<div id="shareCheckbox#{id}" class="dd-share-checkbox" x-mojo-element="CheckBox"></div>
+			<div id="shareCheckbox#{id}" class="dd-checkbox" x-mojo-element="CheckBox"></div>
 			#{name}
 		</div>
 
-		<div id="personDrawer#{id}" style="z-index: 5000" x-mojo-element="Drawer">
+		<div id="personDrawer#{id}" x-mojo-element="Drawer">
 			<div class="palm-group unlabeled">
 				<div class="palm-row">
 					<div class="palm-row-wrapper">
 						<div id="personAmount#{id}" x-mojo-element="TextField"></div>
+					</div>
+				</div>
+				<div class="palm-row">
+					<div class="palm-row-wrapper">
+						<div class="label">
+							<div id="personPayer#{id}" class="dd-checkbox" x-mojo-element="CheckBox"></div>
+						</div>
+						<div class="title">
+							Is this the payer?
+						</div>
 					</div>
 				</div>
 			</div>

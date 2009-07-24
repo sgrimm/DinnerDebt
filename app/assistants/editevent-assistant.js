@@ -81,7 +81,7 @@ EditeventAssistant.prototype.setup = function() {
 		Mojo.Event.listen($('total'), Mojo.Event.propertyChange, this.totalChanged.bind(this));
 		Mojo.Event.listen($('peopleList'), Mojo.Event.listTap, this.handlePeopleTap.bind(this));
 		
-	} catch (e) { Mojo.Log.warn("Exception in EditEventAssistant.setup", e); }
+	} catch (e) { Mojo.Log.warn("Exception in EditEventAssistant.setup", e); throw e; }
 }
 
 EditeventAssistant.prototype.itemsCallback = function(listWidget, offset, count) {
@@ -112,7 +112,10 @@ EditeventAssistant.prototype.itemRenderedCallback = function(listWidget, itemMod
 	this.controller.setupWidget('shareCheckbox' + id);
 	this.controller.setWidgetModel($('shareCheckbox' + id), this.shareCheckboxModels[id]);
 	this.controller.setupWidget('personDrawer' + id, {}, {open:false});
-	this.controller.listen('total' + id, Mojo.Event.tap, this.handleDrawerTap.bind(this));
+	this.controller.listen('total' + id, Mojo.Event.tap, this.handleDrawerButtonTap.bind(this));
+	
+	// Swallow taps on the drawer so they don't flash the list item.
+	this.controller.listen('personDrawer' + id, Mojo.Event.tap, this.handleDrawerTap.bind(this));
 }
 
 EditeventAssistant.prototype.formatTotal = function(val, obj) {
@@ -186,11 +189,18 @@ EditeventAssistant.prototype.handlePeopleTap = function(event) {
 /**
  * Handles a tap on the price button, which will open/close the person's details drawer.
  */
-EditeventAssistant.prototype.handleDrawerTap = function(event) {
+EditeventAssistant.prototype.handleDrawerButtonTap = function(event) {
 	var elementId = event.target.id;
 	var personId = elementId.substring(5); // remove "total"
 	$('personDrawer' + personId).mojo.toggleState();
 
+	event.stopPropagation();
+}
+
+/**
+ * Handles a tap on the drawer (but not on a specific control).
+ */
+EditeventAssistant.prototype.handleDrawerTap = function(event) {
 	event.stopPropagation();
 }
 
