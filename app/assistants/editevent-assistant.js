@@ -47,17 +47,23 @@ EditeventAssistant.prototype.setup = function() {
 			modelProperty: 'value',
 			preventResize: true,
 			maxLength: 7,
+			charsAllow: this.checkNumeric.bind(this),
+			modifierState: Mojo.Widget.numLock,
 		}, this.subtotalModel);
 		
 		this.controller.setupWidget('tipPercent', {
 			hintText: $L("Tip..."),
 			modelProperty: 'value',
 			maxLength: 6,
+			charsAllow: this.checkNumeric.bind(this),
+			modifierState: Mojo.Widget.numLock,
 		}, this.tipPercentModel);
 		
 		this.controller.setupWidget('total', {
 			hintText: $L("Total..."),
 			modelProperty: 'value',
+			charsAllow: this.checkNumeric.bind(this),
+			modifierState: Mojo.Widget.numLock,
 		}, this.descriptionModel);
 		
 		this.controller.setupWidget('peopleList', {
@@ -179,16 +185,6 @@ EditeventAssistant.prototype.handlePeopleTap = function(event) {
 	var model = this.shareCheckboxModels[personId];
 	model.value = !model.value;
 	this.controller.modelChanged(this.shareCheckboxModels[personId], this);
-
-	/*
-	// Toggle the state of the checkbox.
-	var elt = $('shareCheckbox' + personId);
-//	elt.mojo.toggleState();
-
-	// XXX - no method for this, so ugly hack time
-	elt.innerHTML = '';
-	this.controller.setupWidget('shareCheckbox' + personId, {}, model);
-	*/
 }
 
 /**
@@ -200,6 +196,14 @@ EditeventAssistant.prototype.handleDrawerTap = function(event) {
 	$('personDrawer' + personId).mojo.toggleState();
 
 	event.stopPropagation();
+}
+
+/**
+ * Validates a character in one of the numeric input fields.
+ */
+EditeventAssistant.prototype.checkNumeric = function(c) {
+	/* 0-9 and . */
+	return c >= 48 && c <= 57 || c == 46;
 }
 
 /**
