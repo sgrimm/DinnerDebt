@@ -9,58 +9,58 @@ function EditeventAssistant(eventId) {
 }
 
 EditeventAssistant.prototype.setup = function() {
-	/* this function is for setup tasks that have to happen when the scene is first created */
-	this.shareCheckboxModels = {};
-
-	/* use Mojo.View.render to render view templates and add them to the scene, if needed. */
-	
-	/* setup widgets here */
-	this.dateModel = { value: new Date() };
-	this.descriptionModel = { value: this.ddEvent.description };
-	this.subtotalModel = { value: this.formatDecimal(this.ddEvent.subtotal) };
-	this.tipPercentModel = { value: this.ddEvent.tipPercent };
-	this.totalModel = { value: this.formatDecimal(this.ddEvent.total) };
-
-	this.controller.setupWidget('date',
-		{
+	try {
+		/* this function is for setup tasks that have to happen when the scene is first created */
+		this.shareCheckboxModels = {};
+		
+		/* use Mojo.View.render to render view templates and add them to the scene, if needed. */
+		
+		/* setup widgets here */
+		this.dateModel = {
+			value: new Date()
+		};
+		this.descriptionModel = {
+			value: this.ddEvent.description
+		};
+		this.subtotalModel = {
+			value: this.formatDecimal(this.ddEvent.subtotal)
+		};
+		this.tipPercentModel = {
+			value: this.ddEvent.tipPercent
+		};
+		this.totalModel = {
+			value: this.formatDecimal(this.ddEvent.total)
+		};
+		
+		this.controller.setupWidget('date', {
 			label: 'Date',
 			modelProperty: 'value'
-		},
-		this.dateModel);
-
-	this.controller.setupWidget('description',
-		{
+		}, this.dateModel);
+		
+		this.controller.setupWidget('description', {
 			hintText: $L("Description..."),
 			modelProperty: 'value'
-		},
-		this.descriptionModel);
-
-	this.controller.setupWidget('subtotal',
-		{
+		}, this.descriptionModel);
+		
+		this.controller.setupWidget('subtotal', {
 			hintText: $L("Bill..."),
 			modelProperty: 'value',
 			preventResize: true,
 			maxLength: 7,
-		},
-		this.subtotalModel);
-
-	this.controller.setupWidget('tipPercent',
-		{
+		}, this.subtotalModel);
+		
+		this.controller.setupWidget('tipPercent', {
 			hintText: $L("Tip..."),
 			modelProperty: 'value',
 			maxLength: 6,
-		},
-		this.tipPercentModel);
-
-	this.controller.setupWidget('total',
-		{
+		}, this.tipPercentModel);
+		
+		this.controller.setupWidget('total', {
 			hintText: $L("Total..."),
 			modelProperty: 'value',
-		},
-		this.descriptionModel);
-	
-	this.controller.setupWidget('peopleList',
-		{
+		}, this.descriptionModel);
+		
+		this.controller.setupWidget('peopleList', {
 			itemTemplate: "editevent/person-listitem",
 			swipeToDelete: true,
 			reorderable: true,
@@ -71,14 +71,15 @@ EditeventAssistant.prototype.setup = function() {
 				isPayer: this.formatIsPayer.bind(this)
 			},
 			onItemRendered: this.itemRenderedCallback.bind(this),
-		}
-	);
-
-	/* add event handlers to listen to events from widgets */
-	this.controller.listen('subtotal', Mojo.Event.propertyChange, this.subtotalChanged.bind(this));
-	this.controller.listen('tipPercent', Mojo.Event.propertyChange, this.tipPercentChanged.bind(this));
-	Mojo.Event.listen($('total'), Mojo.Event.propertyChange, this.totalChanged.bind(this));
-	Mojo.Event.listen($('peopleList'), Mojo.Event.listTap, this.handlePeopleTap.bind(this));
+		});
+		
+		/* add event handlers to listen to events from widgets */
+		this.controller.listen('subtotal', Mojo.Event.propertyChange, this.subtotalChanged.bind(this));
+		this.controller.listen('tipPercent', Mojo.Event.propertyChange, this.tipPercentChanged.bind(this));
+		Mojo.Event.listen($('total'), Mojo.Event.propertyChange, this.totalChanged.bind(this));
+		Mojo.Event.listen($('peopleList'), Mojo.Event.listTap, this.handlePeopleTap.bind(this));
+		
+	} catch (e) { Mojo.Log.warn("Exception in EditEventAssistant.setup", e); }
 }
 
 EditeventAssistant.prototype.itemsCallback = function(listWidget, offset, count) {
@@ -92,27 +93,24 @@ EditeventAssistant.prototype.itemsCallback = function(listWidget, offset, count)
 					total: null,
 					name: list[i].name,
 					id: list[i].id
-				})
+				});
+				this.shareCheckboxModels[list[i].id] = { value: false };
 			}
 
 			listWidget.mojo.noticeUpdatedItems(offset, updatedList.slice(offset, offset+count));
-		});
+		}.bind(this));
 }
 
 /**
  * Called when a list item is rendered, so we can set up the associated drawer widget.
  */
 EditeventAssistant.prototype.itemRenderedCallback = function(listWidget, itemModel, itemNode) {
-	Mojo.Log.info("in rendered callback");
 	var id = itemModel.id;
 	
-	this.controller.setupWidget('shareCheckbox' + id, {}, this.shareCheckboxModels[id]);
-	this.controller.setupWidget('drawerButton' + id,
-		{
-			label: '+'
-		}
-	);
+	this.controller.setupWidget('shareCheckbox' + id);
+	this.controller.setWidgetModel($('shareCheckbox' + id), this.shareCheckboxModels[id]);
 	this.controller.setupWidget('personDrawer' + id, {}, {open:false});
+	this.controller.listen('total' + id, Mojo.Event.tap, this.handleDrawerTap.bind(this));
 }
 
 EditeventAssistant.prototype.formatTotal = function(val, obj) {
@@ -173,10 +171,35 @@ EditeventAssistant.prototype.cleanup = function(event) {
 }
 
 /**
- * Handles a tap on the list of people, which will open or close a person's drawer.
+ * Handles a tap on the list of people, which will toggle a person's participation checkbox
+ * (which will then trigger a checkbox change event where we'll do our business logic.)
  */
 EditeventAssistant.prototype.handlePeopleTap = function(event) {
-	$('personDrawer' + event.item.id).mojo.toggleState();
+	var personId = event.item.id;
+	var model = this.shareCheckboxModels[personId];
+	model.value = !model.value;
+	this.controller.modelChanged(this.shareCheckboxModels[personId], this);
+
+	/*
+	// Toggle the state of the checkbox.
+	var elt = $('shareCheckbox' + personId);
+//	elt.mojo.toggleState();
+
+	// XXX - no method for this, so ugly hack time
+	elt.innerHTML = '';
+	this.controller.setupWidget('shareCheckbox' + personId, {}, model);
+	*/
+}
+
+/**
+ * Handles a tap on the price button, which will open/close the person's details drawer.
+ */
+EditeventAssistant.prototype.handleDrawerTap = function(event) {
+	var elementId = event.target.id;
+	var personId = elementId.substring(5); // remove "total"
+	$('personDrawer' + personId).mojo.toggleState();
+
+	event.stopPropagation();
 }
 
 /**

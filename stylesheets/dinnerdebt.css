@@ -5,8 +5,13 @@
 .dd-bottom { bottom: 0; }
 
 .dd-bordered {
-	-webkit-border-image: url(../images/selector-header-gray.png) 15 repeat repeat;
-	border: 16px;
+	-webkit-border-image: url(../images/selector-header-gray.png) 15 stretch stretch;
+	border: 7px;
+}
+
+.dd-share-checkbox {
+	position: relative;
+	top: -10px;
 }
 
 #subtotal {

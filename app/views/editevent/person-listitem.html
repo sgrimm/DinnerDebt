@@ -2,10 +2,10 @@
 	<div class="palm-row-wrapper">
 		<div class="label">
 			#{-isPayerFormatted}
-			<span id="total#{id}" class="dd-bordered">#{totalFormatted}</span>
+			<span id="total#{id}" class="dd-bordered dd-drawer-button" x-mojo-tap-highlight="momentary">#{totalFormatted}</span>
 		</div>
 		<div class="title dd-list-item">
-			<div id="shareCheckbox#{id}" x-mojo-element="CheckBox"></div>
+			<div id="shareCheckbox#{id}" class="dd-share-checkbox" x-mojo-element="CheckBox"></div>
 			#{name}
 		</div>
 
