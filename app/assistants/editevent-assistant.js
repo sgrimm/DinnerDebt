@@ -22,15 +22,8 @@ EditeventAssistant.prototype.setup = function() {
 		this.descriptionModel = {
 			value: this.ddEvent.description
 		};
-		this.subtotalModel = {
-			value: this.formatDecimal(this.ddEvent.subtotal)
-		};
-		this.tipPercentModel = {
-			value: this.ddEvent.tipPercent
-		};
-		this.totalModel = {
-			value: this.formatDecimal(this.ddEvent.total)
-		};
+		this.priceModel = {};
+		this.populatePriceModel(this.ddEvent, this.priceModel);
 		
 		this.controller.setupWidget('date', {
 			label: 'Date',
@@ -44,27 +37,30 @@ EditeventAssistant.prototype.setup = function() {
 		
 		this.controller.setupWidget('subtotal', {
 			hintText: $L("Bill..."),
-			modelProperty: 'value',
+			modelProperty: 'subtotal',
 			preventResize: true,
 			maxLength: 7,
 			charsAllow: this.checkNumeric.bind(this),
 			modifierState: Mojo.Widget.numLock,
-		}, this.subtotalModel);
+		});
+		this.controller.setWidgetModel($('subtotal'), this.priceModel);
 		
 		this.controller.setupWidget('tipPercent', {
 			hintText: $L("Tip..."),
-			modelProperty: 'value',
+			modelProperty: 'tipPercent',
 			maxLength: 6,
 			charsAllow: this.checkNumeric.bind(this),
 			modifierState: Mojo.Widget.numLock,
-		}, this.tipPercentModel);
+		}, this.priceModel);
+		this.controller.setWidgetModel($('tipPercent'), this.priceModel);
 		
 		this.controller.setupWidget('total', {
 			hintText: $L("Total..."),
-			modelProperty: 'value',
+			modelProperty: 'total',
 			charsAllow: this.checkNumeric.bind(this),
 			modifierState: Mojo.Widget.numLock,
-		}, this.descriptionModel);
+		}, this.priceModel);
+		this.controller.setWidgetModel($('total'), this.priceModel);
 		
 		this.controller.setupWidget('peopleList', {
 			itemTemplate: "editevent/person-listitem",
@@ -210,12 +206,9 @@ EditeventAssistant.prototype.checkNumeric = function(c) {
  * Handles a change to the subtotal field.
  */
 EditeventAssistant.prototype.subtotalChanged = function(event) {
-Mojo.Log.info("subtotal value is",event.value);
 	var subtotal = parseFloat(event.value);
-Mojo.Log.info("subtotal float is",subtotal);
 	if (subtotal != Number.NaN) {
 		this.ddEvent.setSubtotal(Math.floor(subtotal * 100));
-Mojo.Log.info("subtotal field is", this.ddEvent.getSubtotal());
 	}
 	this.updateEventTotals();
 }
@@ -242,16 +235,19 @@ EditeventAssistant.prototype.totalChanged = function(event) {
 	this.updateEventTotals();
 }
 
+EditeventAssistant.prototype.populatePriceModel = function(ddEvent, model) {
+	model.subtotal = this.formatDecimal(ddEvent.getSubtotal());
+	model.tipPercent = ddEvent.tipPercent ? ''+ddEvent.tipPercent : '';
+	model.total = this.formatDecimal(ddEvent.getTotal());
+}
+
 /**
  * Updates the event money fields.
  */
 EditeventAssistant.prototype.updateEventTotals = function() {
-	var tipPercent = this.ddEvent.getTipPercent();
+	this.populatePriceModel(this.ddEvent, this.priceModel);
+	this.controller.modelChanged(this.priceModel, this);
+
 	var tipAmount = this.ddEvent.getTipAmount();
-	var subtotal = this.ddEvent.getSubtotal();
-	var total = this.ddEvent.getTotal();
-	$('tipPercent').mojo.setValue(tipPercent ? tipPercent : null);
-	$('subtotal').mojo.setValue(subtotal ? this.formatDecimal(subtotal) : '');
-	$('total').mojo.setValue(total ? this.formatDecimal(total) : '');
 	$('tipAmount').innerHTML = tipAmount ? ('(' + this.formatTotal(tipAmount) + ')') : '';
 }
