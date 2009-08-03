@@ -53,6 +53,41 @@
 	width: 23%;
 }
 
+.dd-payingRow {
+	margin: -10px 0 0 0;
+}
+
+.dd-payingCheckbox {
+	display: inline;
+	float: left;
+}
+
+.dd-amountRow {
+	background-color: #ff0000;
+}
+
+.dd-sharefixed {
+	float: left;
+	display: inline;
+}
+
+.dd-amountIs {
+	float: left;
+	display: inline;
+	color: #1f75bf;
+	text-shadow: #ffffff 0px 1px 0px;
+	font-size: 14px;
+	margin: 16px 12px 0 0;
+	text-transform: uppercase;
+}
+
+.dd-additionalAmount {
+	float: left;
+	display: inline;
+	margin-top: 12px;
+	width: 3em;
+}
+
 .scene-footer {
 	position: fixed;
 	bottom: 0;
