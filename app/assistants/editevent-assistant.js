@@ -321,8 +321,6 @@ EditeventAssistant.prototype.populatePriceModel = function(ddEvent, model) {
 EditeventAssistant.prototype.updateEventTotals = function() {
 	this.populatePriceModel(this.ddEvent, this.priceModel);
 	this.controller.modelChanged(this.priceModel, this);
-Mojo.Log.info('updated event totals');
-Mojo.Log.logProperties(this.ddEvent, 'ddEvent');
 	this.refreshParticipations();
 
 	var tipAmount = this.ddEvent.getTipAmount();

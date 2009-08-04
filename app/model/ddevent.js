@@ -203,7 +203,6 @@ var DDEvent = Class.create({
 				continue;
 			}
 
-Mojo.Log.info('person', part.personId, 'is sharing, additional', part.additionalAmount);
 			// Fixed- or additional-price people get a proportional share of the tip.
 			var tipShare = Math.round(part.additionalAmount * this.tipPercent / 100.0);
 			part.total = part.additionalAmount + tipShare;
@@ -213,9 +212,7 @@ Mojo.Log.info('person', part.personId, 'is sharing, additional', part.additional
 				sharerIndexes.push(i);
 				numSharers++;
 			}
-Mojo.Log.info('person', part.personId, 'initial total is', part.total);
 		}
-Mojo.Log.info('remaining total to split is', totalToSplit, 'among', numSharers);
 
 		// At this point:
 		// - totalToSplit has the total (with tip) minus any additional or
@@ -233,7 +230,6 @@ Mojo.Log.info('remaining total to split is', totalToSplit, 'among', numSharers);
 			var share = Math.round(totalToSplit / numSharers);
 			numSharers--;
 			var part = this.participations[sharerIndexes[numSharers]];
-Mojo.Log.info('share for person', part.personId, 'is', share);
 
 			totalToSplit -= share;
 			part.total += share;
@@ -272,7 +268,6 @@ DDEvent.getList = function(onSuccess) {
 		return;
 	}
 
-	Mojo.Log.info("loading events");
 	depot.get("ddevents",
 			function(obj) {
 				if (obj == null) {
