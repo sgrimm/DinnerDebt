@@ -21,6 +21,19 @@
 	width: 23%;
 }
 
+#date .label {
+	margin-top: 0px;
+}
+
+#date {
+	padding-bottom: 5px;
+}
+
+#description {
+	position: relative;
+	top: 10px;
+}
+
 #subtotalPlusSign {
 	position: absolute;
 	top: 116px;

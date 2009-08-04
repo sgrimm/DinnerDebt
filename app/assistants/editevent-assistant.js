@@ -407,7 +407,7 @@ EditeventAssistant.prototype.participationToModel = function(id) {
 	model.id = participation.personId;
 
 	var newTotal = this.formatTotal(participation.total);
-	if (!model.total || model.total != newTotal) {
+	if (model.total != newTotal) {
 		model.total = newTotal;
 		var element = this.controller.get('total' + id);
 		if (element) {
