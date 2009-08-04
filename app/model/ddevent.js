@@ -199,6 +199,7 @@ var DDEvent = Class.create({
 			var part = this.participations[i];
 
 			if (!part.isSharing) {
+				part.total = 0;
 				continue;
 			}
 
