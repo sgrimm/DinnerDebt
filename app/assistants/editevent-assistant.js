@@ -189,6 +189,7 @@ EditeventAssistant.prototype.handlePeopleTap = function(event) {
 	var model = this.participationModels[personId];
 	model.isSharing = !model.isSharing;
 	this.controller.modelChanged(this.participationModels[personId], this);
+	this.recalculateShare(personId);
 }
 
 /**
