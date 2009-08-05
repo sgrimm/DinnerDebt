@@ -3,22 +3,16 @@ function EventsAssistant() {
 	   additional parameters (after the scene name) that were passed to pushScene. The reference
 	   to the scene controller (this.controller) has not be established yet, so any initialization
 	   that needs the scene controller should be done in the setup function below. */
+	
+	this.lastItemTapped = null;
 }
 
 EventsAssistant.prototype.setup = function() {
 	/* this function is for setup tasks that have to happen when the scene is first created */
-	Mojo.Log.info("setting up events scene");
 
 	/* use Mojo.View.render to render view templates and add them to the scene, if needed. */
 	
 	/* setup widgets here */
-	this.controller.setupWidget('newEventButton',
-		{
-			label: 'New Event',
-			disabled: false
-		},
-		{ });
-
 	this.controller.setupWidget('eventsList',
 		{
 			itemTemplate : 'events/listitem',
@@ -27,20 +21,20 @@ EventsAssistant.prototype.setup = function() {
 				total : this.formatTotal.bind(this),
 				date : this.formatDate.bind(this)
 			},
+			addItemLabel : $L('Add Event'),
 		});
 	
 	/* add event handlers to listen to events from widgets */
 	Mojo.Event.listen($('eventsHeader'), Mojo.Event.tap, this.handleHeaderTap.bind(this));
-	Mojo.Event.listen($('newEventButton'), Mojo.Event.tap, this.handleNewEventTap.bind(this));
 	
 	this.eventsList = this.controller.get('eventsList');
+	this.controller.listen('eventsList', Mojo.Event.listTap, this.handleEventTap.bind(this));
+	this.controller.listen('eventsList', Mojo.Event.listAdd, this.handleAddTap.bind(this));
 }
 
 EventsAssistant.prototype.itemsCallback = function(listWidget, offset, count){
-	Mojo.Log.info("want to fetch events from",offset,"count",count);
 	DDEvent.getList(
 		function(list) {
-			Mojo.Log.info("in callback with list of size", list.length);
 			listWidget.mojo.noticeUpdatedItems(offset, list.slice(offset,offset+count));
 		});
 };
@@ -61,6 +55,7 @@ EventsAssistant.prototype.activate = function(event) {
 	var mojo = this.eventsList.mojo;
 	DDEvent.getListLength(function(length) {
 		mojo.setLengthAndInvalidate(length);
+		mojo.revealItem(this.lastItemTapped ? this.lastItemTapped : length - 1);
 	});
 }
 
@@ -83,8 +78,17 @@ EventsAssistant.prototype.handleHeaderTap = function(event) {
 }
 
 /**
- * Handles a tap on the "New Event" button.
+ * Handles a tap on the "Add Event" button.
  */
-EventsAssistant.prototype.handleNewEventTap = function(event) {
+EventsAssistant.prototype.handleAddTap = function(event) {
+	this.lastItemTapped = null;
 	this.controller.stageController.pushScene('editevent');
+}
+
+/**
+ * Handles a tap on the event list.
+ */
+EventsAssistant.prototype.handleEventTap = function(event) {
+	this.lastItemTapped = event.index;
+	this.controller.stageController.pushScene('editevent', event.item);
 }

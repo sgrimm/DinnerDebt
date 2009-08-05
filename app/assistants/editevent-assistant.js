@@ -1,12 +1,17 @@
 var EditeventAssistant = Class.create({
-	initialize : function(eventId) {
+	initialize : function(ddEvent) {
 		/* this is the creator function for your scene assistant object. It will be passed all the 
 		   additional parameters (after the scene name) that were passed to pushScene. The reference
 		   to the scene controller (this.controller) has not be established yet, so any initialization
 		   that needs the scene controller should be done in the setup function below. */
-		if (!eventId) {
+		if (ddEvent) {
+			this.ddEvent = ddEvent;
+		} else {
 			this.ddEvent = new DDEvent();
 		}
+
+		this.priceModel = {};
+		this.listPositions = {};
 	},
 
 	setup : function() {
@@ -16,11 +21,8 @@ var EditeventAssistant = Class.create({
 			this.drawersInitialized = {};
 		
 			/* use Mojo.View.render to render view templates and add them to the scene, if needed. */
-		
+
 			/* setup widgets here */
-			this.priceModel = {};
-			this.populatePriceModel(this.ddEvent, this.priceModel);
-		
 			this.controller.setupWidget('date', {
 				label: 'Date',
 				modelProperty: 'date'
@@ -69,7 +71,9 @@ var EditeventAssistant = Class.create({
 				},
 				onItemRendered: this.itemRenderedCallback.bind(this),
 			});
-		
+
+			this.populatePriceModel(this.ddEvent, this.priceModel, true);
+
 			/* add event handlers to listen to events from widgets */
 			this.controller.listen('subtotal', Mojo.Event.propertyChange, this.subtotalChanged.bind(this));
 			this.controller.listen('tipPercent', Mojo.Event.propertyChange, this.tipPercentChanged.bind(this));
@@ -310,11 +314,13 @@ var EditeventAssistant = Class.create({
 		this.updateEventTotals();
 	},
 
-	populatePriceModel : function(ddEvent, model) {
+	populatePriceModel : function(ddEvent, model, skipModelChangedEvent) {
 		model.subtotal = this.formatDecimal(ddEvent.getSubtotal());
 		model.tipPercent = ddEvent.tipPercent ? ''+ddEvent.tipPercent : '';
 		model.total = this.formatDecimal(ddEvent.getTotal());
-		this.controller.modelChanged(this.priceModel, this);
+		if (!skipModelChangedEvent) {
+			this.controller.modelChanged(model, this);
+		}
 	},
 
 	/**
