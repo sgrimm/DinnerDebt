@@ -323,6 +323,7 @@ var EditeventAssistant = Class.create({
 	updateEventTotals : function() {
 		this.populatePriceModel(this.ddEvent, this.priceModel);
 		this.controller.modelChanged(this.priceModel, this);
+		this.ddEvent.recalculateShares();
 		this.refreshParticipations();
 
 		var tipAmount = this.ddEvent.getTipAmount();
