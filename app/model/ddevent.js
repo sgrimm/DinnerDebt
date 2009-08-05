@@ -13,6 +13,9 @@ var DDEvent = Class.create({
 			this.date = date;
 			this.participations = parts;
 			this.payerId = payer;
+		} else {
+			this.participations = [];	// otherwise we'll reference the prototype's array
+			this.date = new Date();
 		}
 	},
 
@@ -235,6 +238,19 @@ var DDEvent = Class.create({
 			part.total += share;
 		}
 	},
+	
+	/**
+	 * Saves this event to the database.
+	 */
+	save : function() {
+		if (this.id == 0) {
+			this.id = DDEvent.getUnusedId();
+			DDEvent.list.push(this);
+		}
+		// else we were editing the existing list item in place anyway
+		
+		DDEvent.saveList();
+	},
 });
 
 
@@ -242,22 +258,6 @@ var DDEvent = Class.create({
  * List of events in reverse chronological order.
  */
 DDEvent.list = null;
-
-DDEvent.list = [
-	new DDEvent(1, 'test event 1', 9512, 5, 9988, new Date(2009,4,6,0,0,0,0), [], 1),
-	new DDEvent(1, 'test event 1', 9512, 5, 9988, new Date(2009,4,6,0,0,0,0), [], 2),
-	new DDEvent(1, 'test event 1', 9512, 5, 9988, new Date(2009,4,6,0,0,0,0), [], 3),
-	new DDEvent(1, 'test event 1', 9512, 5, 9988, new Date(2009,4,6,0,0,0,0), [], 1),
-	new DDEvent(1, 'test event 1', 9512, 5, 9988, new Date(2009,4,6,0,0,0,0), [], 1),
-	new DDEvent(1, 'test event 1', 9512, 5, 9988, new Date(2009,4,6,0,0,0,0), [], 1),
-	new DDEvent(1, 'test event 1', 9512, 5, 9988, new Date(2009,4,6,0,0,0,0), [], 1),
-	new DDEvent(1, 'test event 1', 9512, 5, 9988, new Date(2009,4,6,0,0,0,0), [], 1),
-	new DDEvent(1, 'test event 1', 9512, 5, 9988, new Date(2009,4,6,0,0,0,0), [], 1),
-	new DDEvent(1, 'test event 2', 9512, 5, 9988, new Date(2009,4,7,0,0,0,0), [], 1),
-	new DDEvent(1, 'test event 3', 9512, 5, 9988, new Date(2009,4,8,0,0,0,0), [], 1),
-	new DDEvent(1, 'test event 4', 9512, 5, 9988, new Date(2009,4,9,0,0,0,0), [], 1),
-	new DDEvent(1, 'test event 5', 9512, 5, 9988, new Date(2009,4,9,0,0,0,0), [], 1),
-];
 
 /**
  * Loads the list of events from the database.
@@ -283,12 +283,34 @@ DDEvent.getList = function(onSuccess) {
 }
 
 /**
+ * Gets the length of the list of events from the database.
+ *
+ * @param onSuccess  Function to call with a length.
+ */
+DDEvent.getListLength = function(onSuccess) {
+	onSuccess(DDEvent.list.length);
+}
+
+/**
  * Saves the list of events to the database.
  */
 DDEvent.saveList = function() {
 	depot.add("ddevents", DDEvent.list,
 			function() {},
 			function(error) { throw "Can't save events, error " + error; });
+}
+
+/**
+ * Allocates a new ID to an event.
+ */
+DDEvent.getUnusedId = function() {
+	var maxId = 0;
+	for (var i = 0; i < DDEvent.list.length; i++) {
+		if (DDEvent.list[i].id > maxId) {
+			maxId = DDEvent.list[i].id;
+		}
+	}
+	return maxId + 1;
 }
 
 /**

@@ -32,6 +32,8 @@ EventsAssistant.prototype.setup = function() {
 	/* add event handlers to listen to events from widgets */
 	Mojo.Event.listen($('eventsHeader'), Mojo.Event.tap, this.handleHeaderTap.bind(this));
 	Mojo.Event.listen($('newEventButton'), Mojo.Event.tap, this.handleNewEventTap.bind(this));
+	
+	this.eventsList = this.controller.get('eventsList');
 }
 
 EventsAssistant.prototype.itemsCallback = function(listWidget, offset, count){
@@ -51,9 +53,15 @@ EventsAssistant.prototype.formatDate = function(val, obj) {
 	return Mojo.Format.formatDate(val, {date:'short'});
 };
 
+/**
+ * Does initialization that's needed whenever the scene is active.
+ * For example, key handlers that are observing the document.
+ */
 EventsAssistant.prototype.activate = function(event) {
-	/* put in event handlers here that should only be in effect when this scene is active. For
-	   example, key handlers that are observing the document */
+	var mojo = this.eventsList.mojo;
+	DDEvent.getListLength(function(length) {
+		mojo.setLengthAndInvalidate(length);
+	});
 }
 
 

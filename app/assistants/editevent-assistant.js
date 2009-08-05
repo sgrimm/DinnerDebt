@@ -18,24 +18,18 @@ var EditeventAssistant = Class.create({
 			/* use Mojo.View.render to render view templates and add them to the scene, if needed. */
 		
 			/* setup widgets here */
-			this.dateModel = {
-				value: new Date()
-			};
-			this.descriptionModel = {
-				value: this.ddEvent.description
-			};
 			this.priceModel = {};
 			this.populatePriceModel(this.ddEvent, this.priceModel);
 		
 			this.controller.setupWidget('date', {
 				label: 'Date',
-				modelProperty: 'value'
-			}, this.dateModel);
+				modelProperty: 'date'
+			}, this.ddEvent);
 		
 			this.controller.setupWidget('description', {
 				hintText: $L("Description..."),
-				modelProperty: 'value'
-			}, this.descriptionModel);
+				modelProperty: 'description'
+			}, this.ddEvent);
 		
 			this.controller.setupWidget('subtotal', {
 				hintText: $L("Bill..."),
@@ -176,9 +170,14 @@ var EditeventAssistant = Class.create({
 		   this scene is popped or another scene is pushed on top */
 	},
 
+	/**
+	 * Cleans up after the scene. Called before the scene is destroyed as 
+	 * a result of being popped off the scene stack.
+	 */
 	cleanup : function(event) {
-		/* this function should do any cleanup needed before the scene is destroyed as 
-		   a result of being popped off the scene stack */
+		if (this.ddEvent.getTotal() > 0 || this.ddEvent.description != '') {
+			this.ddEvent.save();
+		}
 	},
 
 	/**
@@ -315,6 +314,7 @@ var EditeventAssistant = Class.create({
 		model.subtotal = this.formatDecimal(ddEvent.getSubtotal());
 		model.tipPercent = ddEvent.tipPercent ? ''+ddEvent.tipPercent : '';
 		model.total = this.formatDecimal(ddEvent.getTotal());
+		this.controller.modelChanged(this.priceModel, this);
 	},
 
 	/**
@@ -322,7 +322,6 @@ var EditeventAssistant = Class.create({
 	 */
 	updateEventTotals : function() {
 		this.populatePriceModel(this.ddEvent, this.priceModel);
-		this.controller.modelChanged(this.priceModel, this);
 		this.ddEvent.recalculateShares();
 		this.refreshParticipations();
 
