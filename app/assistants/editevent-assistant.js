@@ -73,6 +73,7 @@ var EditeventAssistant = Class.create({
 			});
 
 			this.populatePriceModel(this.ddEvent, this.priceModel, true);
+			this.updateTipAmount();
 
 			/* add event handlers to listen to events from widgets */
 			this.controller.listen('subtotal', Mojo.Event.propertyChange, this.subtotalChanged.bind(this));
@@ -89,9 +90,28 @@ var EditeventAssistant = Class.create({
 	listPositions : {},
 
 	itemsCallback : function(listWidget, offset, count) {
-		var biggestDebt = 0;
-
-		// load participant list
+		// If the event is new, need to find the biggest debtor so we can set them
+		// as the default payer. That's an async operation, and we want to do it
+		// before populating the list of people.
+		if (!this.ddEvent.getPayer()) {
+			Person.getList(Person.SORT_BALANCE,
+				function(list) {
+					// The first entry in the list is our default payer.
+					if (list.length > 0 && !this.ddEvent.getPayer()) {
+						this.ddEvent.setPayer(list[0]);
+						this.populatePeopleList(listWidget, offset, count);
+					}
+				}.bind(this));
+		} else {
+			this.populatePeopleList(listWidget, offset, count);
+		}
+	},
+	
+	/**
+	 * Populates the list of people. This is indirectly called from
+	 * itemsCallback() and does most of the actual work.
+	 */
+	populatePeopleList: function(listWidget, offset, count) {
 		Person.getList(Person.SORT_NAME,
 			function(list) {
 				var updatedList = [];
@@ -109,11 +129,6 @@ var EditeventAssistant = Class.create({
 					this.controller.setupWidget('shareCheckbox' + id, {
 						modelProperty: 'isSharing'
 					}, this.participationModels[id]);
-					
-					if (biggestDebt > entry.balance || !this.ddEvent.getPayer()) {
-						biggestDebt = entry.balance;
-						this.setPayer(id);
-					}
 				}
 
 				listWidget.mojo.noticeUpdatedItems(offset, updatedList.slice(offset, offset+count));
@@ -322,7 +337,13 @@ var EditeventAssistant = Class.create({
 		this.populatePriceModel(this.ddEvent, this.priceModel);
 		this.ddEvent.recalculateShares();
 		this.refreshParticipations();
-
+		this.updateTipAmount();
+	},
+	
+	/**
+	 * Updates the "tip amount" display.
+	 */
+	updateTipAmount: function() {
 		var tipAmount = this.ddEvent.getTipAmount();
 		$('tipAmount').innerHTML = tipAmount ? ('(' + this.formatTotal(tipAmount) + ')') : '';
 	},
