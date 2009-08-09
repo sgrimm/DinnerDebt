@@ -209,7 +209,7 @@ var EditeventAssistant = Class.create({
 		
 			this.controller.setupWidget('personDrawer' + id, {}, {open:false});
 			this.controller.setupWidget('personPayer' + id, {
-				modelProperty: 'isPaying'
+				modelProperty: 'isPayer'
 			});
 			this.controller.setupWidget('additionalAmount' + id, {
 				hintText: '0.00',
@@ -344,7 +344,7 @@ var EditeventAssistant = Class.create({
 		} else {
 			this.setPayer(id);
 		}
-	
+
 		if (event) {
 			event.stopPropagation();
 		}
@@ -354,19 +354,22 @@ var EditeventAssistant = Class.create({
 	 * Sets the payer to a particular person and clears all the other checkboxes.
 	 */
 	setPayer : function(newId) {
-		for (var id in this.participationModels) {
-			var part = this.participationModels[id];
-			var newIsPaying = (id == newId);
-			var oldIsPaying = part.isPaying;
+		var oldId = this.ddEvent.getPayerId();
+		if (oldId == newId) {
+			Mojo.Log.info("Setting payer to", id, "but is already", id);
+			return;
+		}
 
-			part.isPaying = newIsPaying;
-			if (newIsPaying != oldIsPaying) {
-				var isPayerMessage = this.controller.get('isPayerMessage' + id);
-				isPayerMessage.innerHTML = this.formatIsPayer(newIsPaying);
-				if (this.drawersInitialized[id]) {
-					this.controller.modelChanged(part);
-				}
-			}
+		if (oldId) {
+			this.controller.get('isPayerMessage' + oldId).innerHTML = '';
+			this.participationModels[oldId].isPayer = false;
+			this.controller.modelChanged(this.participationModels[oldId]);
+		}
+		if (newId) {
+			this.controller.get('isPayerMessage' + newId).innerHTML =
+				this.formatIsPayer(true);
+			this.participationModels[newId].isPayer = true;
+			this.controller.modelChanged(this.participationModels[newId]);
 		}
 	
 		this.ddEvent.setPayerId(newId);
@@ -411,7 +414,7 @@ var EditeventAssistant = Class.create({
 		model.isSharing = participation.isSharing;
 		model.shareIsFixed = participation.shareIsFixed;
 		model.additionalAmount = this.formatDecimal(participation.additionalAmount);
-		model.isPaying = (this.ddEvent.getPayerId() == id);
+		model.isPayer = (this.ddEvent.getPayerId() == id);
 		model.id = participation.personId;
 
 		var newTotal = this.formatTotal(participation.total);

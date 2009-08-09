@@ -269,12 +269,22 @@ DDEvent.getList = function(onSuccess) {
 	}
 
 	depot.get("ddevents",
-			function(obj) {
-				if (obj == null) {
-					// Newly-created DB
-					Mojo.Log.info("Event list not found, creating");
-					DDEvent.list = [];
-				} else {
+			function(list) {
+				DDEvent.list = [];
+				if (list != null) {
+					for (var index = 0; index < list.length; index++) {
+						// Serialized object will just be straight field values...
+						var e = list[index];
+						Mojo.Log.logProperties(e.parts);
+						// ...so we need to make real DDEvent objects out of them.
+						try {
+						DDEvent.list.push(
+							new DDEvent(e.id, e.description, e.subtotal,
+										e.tipPercent, e.total,
+										new Date(e.date), e.participations,
+										e.payerId));
+						} catch (e) { Mojo.Log.error(e); }
+					}
 					DDEvent.list = obj;
 				}
 				onSuccess(DDEvent.list);
@@ -295,7 +305,37 @@ DDEvent.getListLength = function(onSuccess) {
  * Saves the list of events to the database.
  */
 DDEvent.saveList = function() {
-	depot.add("ddevents", DDEvent.list,
+	// Need to convert the list to a serializable form, i.e.,
+	// a list of name-value-pair lists with no complex values.
+	var serializable = [];
+	for (var i = 0; i < DDEvent.list.length; i++) {
+		var e = DDEvent.list[i];
+
+		// We can serialize participations directly since they are
+		// just dumb container objects, but don't bother saving
+		// them for non-participants.
+		var partList = [];
+		for (var p = 0; p < e.participations.length; p++) {
+			var part = e.participations[p];
+			if (part.isSharing) {
+				partList.push(part);
+			}
+		}
+		serializable.push({
+			id: e.id,
+			description: e.description,
+			subtotal: e.subtotal,
+			tipPercent: e.tipPercent,
+			// XXX - could derive the total at load time
+			total: e.total,
+			date: e.date.getTime(),
+			participations: partList,
+			payerId: e.payerId,
+		});
+	}
+
+	Mojo.Log.info("json is", serializable.toJSON());
+	depot.add("ddevents", serializable,
 			function() {},
 			function(error) { throw "Can't save events, error " + error; });
 }
