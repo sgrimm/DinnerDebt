@@ -415,7 +415,7 @@ var EditeventAssistant = Class.create({
 		model.shareIsFixed = participation.shareIsFixed;
 		model.additionalAmount = this.formatDecimal(participation.additionalAmount);
 		model.isPayer = (this.ddEvent.getPayerId() == id);
-		model.id = participation.personId;
+		model.id = participation.person.id;
 
 		var newTotal = this.formatTotal(participation.total);
 		if (model.total != newTotal) {

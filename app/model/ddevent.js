@@ -147,7 +147,7 @@ var DDEvent = Class.create({
 	findParticipationForUser: function(id) {
 		// Yeah, linear search
 		for (var i = 0; i < this.participations.length; i++) {
-			if (this.participations[i].personId == id) {
+			if (this.participations[i].person.id == id) {
 				return i;
 			}
 		}
@@ -165,7 +165,7 @@ var DDEvent = Class.create({
 			return this.participations[index];
 		}
 
-		var part = new Participation(this.id, id);
+		var part = new Participation(Person.get(id), this);
 		this.participations.push(part);
 		return part;
 	},
@@ -177,7 +177,7 @@ var DDEvent = Class.create({
 	 * @param Participation Model object with updated participation data.
 	 */
 	setParticipation: function(participation) {
-		var index = this.findParticipationForUser(participation.personId);
+		var index = this.findParticipationForUser(participation.person.id);
 		if (index == -1) {
 			this.participations.push(participation);
 		} else if (this.participations[index] !== participation) {
@@ -272,18 +272,22 @@ DDEvent.getList = function(onSuccess) {
 			function(list) {
 				DDEvent.list = [];
 				if (list != null) {
-					for (var index = 0; index < list.length; index++) {
-						// Serialized object will just be straight field values...
-						var e = list[index];
-						Mojo.Log.logProperties(e.parts);
-						// ...so we need to make real DDEvent objects out of them.
-						try {
+					for (var i = 0; i < list.length; i++) {
+						var e = list[i];
+						var dde;
+						var realParts = [];
 						DDEvent.list.push(
-							new DDEvent(e.id, e.description, e.subtotal,
-										e.tipPercent, e.total,
-										new Date(e.date), e.participations,
-										e.payerId));
-						} catch (e) { Mojo.Log.error(e); }
+							dde = new DDEvent(e.id, e.description, e.subtotal,
+											  e.tipPercent, e.total,
+											  new Date(e.date),
+											  realParts,
+											  e.payerId));
+
+						// We passed in an empty participants list; now fill it in
+						var simpleParts = e.participations;
+						for (var p = 0; p < simpleParts.length; p++) {
+							realParts.push(Participation.complexify(simpleParts[p]));
+						}
 					}
 					DDEvent.list = obj;
 				}
@@ -317,8 +321,8 @@ DDEvent.saveList = function() {
 		var partList = [];
 		for (var p = 0; p < e.participations.length; p++) {
 			var part = e.participations[p];
-			if (part.isSharing) {
-				partList.push(part);
+			if (part.isWorthKeeping()) {
+				partList.push(part.simplify());
 			}
 		}
 		serializable.push({
@@ -334,7 +338,6 @@ DDEvent.saveList = function() {
 		});
 	}
 
-	Mojo.Log.info("json is", serializable.toJSON());
 	depot.add("ddevents", serializable,
 			function() {},
 			function(error) { throw "Can't save events, error " + error; });
@@ -360,4 +363,17 @@ DDEvent.sortList = function() {
 	DDEvent.list.sort(function(a,b) { return b.date.getTime() - a.date.getTime(); });
 }
 
-DDEvent.sortList();
+/**
+ * Returns the event with a particular ID.
+ */
+DDEvent.get = function(id) {
+	// XXX - hash lookups FTW
+	for (var i = 0; i < DDEvent.list.length; i++) {
+		if (DDEvent.list[i].id == id) {
+			return DDEvent.list[i];
+		}
+	}
+
+	Mojo.Log.error("Can't find event with id", id);
+	return null;
+}

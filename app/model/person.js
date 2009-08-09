@@ -2,7 +2,7 @@
  * A single person's private data.
  */
 var Person = Class.create({
-	initialize: function(id, name, balance) {
+	initialize : function(id, name, balance) {
 		this.id = id;
 		this.name = name;
 		this.balance = balance;
@@ -127,5 +127,10 @@ Person.saveList = function() {
  * @param int id
  */
 Person.get = function(id){
-	return Person.list[id];
+	if (Person.list[id]) {
+		return Person.list[id];
+	} else {
+		Mojo.Log.error("Can't find person with id", id);
+		return null;
+	}
 }
