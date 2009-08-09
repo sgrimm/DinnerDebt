@@ -1,49 +1,51 @@
 /**
  * A single person's private data.
  */
-function Person(id, name, balance) {
-	this.id = id;
-	this.name = name;
-	this.balance = balance;
-}
+var Person = Class.create({
+	initialize: function(id, name, balance) {
+		this.id = id;
+		this.name = name;
+		this.balance = balance;
+	},
 
-/**
- * A unique identifier for the person.
- */
-Person.prototype.id = 0;
+	/**
+	 * A unique identifier for the person.
+	 */
+	id : 0,
 	
-/**
- * The person's name.
- * TODO: link to contact entry
- */
-Person.prototype.name = '';
+	/**
+	 * The person's name.
+	 * TODO: link to contact entry
+	 */
+	name : '',
 
-/**
- * Money owed to or by the group. This is like a bank balance, not a credit card balance;
- * a positive value is a credit (the group owes this person money). This balance is an
- * integer number of cents.
- */
-Person.prototype.balance = 0;
+	/**
+	 * Money owed to or by the group. This is like a bank balance, not a credit card balance;
+	 * a positive value is a credit (the group owes this person money). This balance is an
+	 * integer number of cents.
+	 */
+	balance : 0,
 
-/**
- * Adds credit to a person's balance.
- */
-Person.prototype.credit = function(amount) {
-	if (amount < 0) {
-		throw "Can't credit negative values";
-	}
-	this.balance += amount;
-};
+	/**
+	 * Adds credit to a person's balance.
+	 */
+	credit : function(amount) {
+		if (amount < 0) {
+			throw "Can't credit negative values";
+		}
+		this.balance += amount;
+	},
 
-/**
- * Withdraws money from a person's balance.
- */
-Person.prototype.debit = function(amount) {
-	if (amount < 0) {
-		throw "Can't debit negative values";
-	}
-	this.balance -= amount;
-};
+	/**
+	 * Withdraws money from a person's balance.
+	 */
+	debit : function(amount) {
+		if (amount < 0) {
+			throw "Can't debit negative values";
+		}
+		this.balance -= amount;
+	},
+});
 
 /**
  * List of people, indexed by ID.
