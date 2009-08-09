@@ -233,7 +233,7 @@ var DDEvent = Class.create({
 			var part = this.participations[i];
 
 			if (!part.isSharing) {
-				part.total = 0;
+				part.setTotal(0);
 				continue;
 			}
 
@@ -241,7 +241,7 @@ var DDEvent = Class.create({
 			var tipShare = Math.round(part.additionalAmount * this.tipPercent / 100.0);
 			part.setTotal(part.additionalAmount + tipShare);
 			// Don't split the part of the cost covered by fixed-pricers.
-			totalToSplit -= part.total;
+			totalToSplit -= part.getTotal();
 			if (!part.shareIsFixed) {
 				sharerIndexes.push(i);
 				numSharers++;
