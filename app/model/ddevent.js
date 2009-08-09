@@ -208,7 +208,7 @@ var DDEvent = Class.create({
 
 			// Fixed- or additional-price people get a proportional share of the tip.
 			var tipShare = Math.round(part.additionalAmount * this.tipPercent / 100.0);
-			part.total = part.additionalAmount + tipShare;
+			part.setTotal(part.additionalAmount + tipShare);
 			// Don't split the part of the cost covered by fixed-pricers.
 			totalToSplit -= part.total;
 			if (!part.shareIsFixed) {
@@ -235,7 +235,7 @@ var DDEvent = Class.create({
 			var part = this.participations[sharerIndexes[numSharers]];
 
 			totalToSplit -= share;
-			part.total += share;
+			part.setTotal(part.getTotal() + share);
 		}
 	},
 	

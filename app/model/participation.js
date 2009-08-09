@@ -39,6 +39,21 @@ var Participation = Class.create({
 		this.total = total ? total : 0;
 	},
 
+	/** Returns this participation's total amount. */
+	getTotal: function() {
+		return this.total;
+	},
+
+	/**
+	 * Updates this participation's total amount, adjusting the balance of the
+	 * person involved.
+	 */
+	setTotal: function(newTotal) {
+		this.person.credit(this.total);
+		this.person.debit(newTotal);
+		this.total = newTotal;
+	},
+
 	/** Returns a serializable (simple object) version of this participation. */
 	simplify: function() {
 		return {
