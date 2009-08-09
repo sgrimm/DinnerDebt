@@ -1,7 +1,12 @@
 <div class="palm-row" x-mojo-tap-highlight="momentary">
 	<div class="palm-row-wrapper">
 		<div class="label">
-			<tt>#{dateFormatted}</tt> #{totalFormatted} 
+			<table border="0">
+				<tr>
+					<td><tt>#{dateFormatted}</tt></td>
+					<td class="dd-event-price">#{totalFormatted}</td>
+				</tr>
+			</table>
 		</div>
 		<div class="title dd-list-item">
 			#{description}

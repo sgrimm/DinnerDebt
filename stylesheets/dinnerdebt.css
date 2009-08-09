@@ -14,6 +14,12 @@
 	top: -10px;
 }
 
+/************** event list *************/
+.dd-event-price {
+	min-width: 80px;
+}
+
+/************** edit event *************/
 #subtotal {
 	position: absolute;
 	top: 116px;
