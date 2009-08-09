@@ -236,6 +236,8 @@ var EditeventAssistant = Class.create({
 			this.controller.setupWidget('additionalAmount' + id, {
 				hintText: '0.00',
 				modelProperty: 'additionalAmount',
+				charsAllow: this.checkNumeric.bind(this),
+				modifierState: Mojo.Widget.numLock,
 			}, this.participationModels[id]);
 			this.controller.setupWidget('shareIsFixed' + id, {
 				trueLabel: 'Entire',
