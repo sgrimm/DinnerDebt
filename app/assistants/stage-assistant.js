@@ -8,8 +8,11 @@ var StageAssistant = Class.create({
 	},
 
 	setup : function() {
-		// Show the initial scene.
-		this.controller.pushScene('events');
+		// Load the people list, which we need for loading other stuff.
+		Person.getList(Person.SORT_NAME, function() {
+				// Show the initial scene.
+				this.controller.pushScene('events');
+			}.bind(this));
 	},
 });
 

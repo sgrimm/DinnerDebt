@@ -28,8 +28,10 @@ PeopleAssistant.prototype.setup = function() {
 	this.viewMenuModel = {
 		visible: true,
 		items: [{
+			toggleCmd: 'people',
 			items: [
-				{ label: 'People', command: 'events', width: 240 },
+				{ label: 'Events', command: 'events', width: 120 },
+				{ label: 'People', command: 'people', width: 120 },
 			]
 		},{
 			items: [
@@ -55,8 +57,9 @@ PeopleAssistant.prototype.setup = function() {
 	this.controller.setupWidget('sort-menu', undefined, this.sortMenuModel);
 
 	/* add event handlers to listen to events from widgets */
+	this.controller.listen('peopleList', Mojo.Event.listAdd, this.handleListAdd.bind(this));
 
-	this.peopleListWidget = $('peopleList');
+	this.peopleListWidget = this.controller.get('peopleList');
 }
 
 PeopleAssistant.prototype.itemsCallback = function(listWidget, offset, count) {
@@ -110,8 +113,67 @@ PeopleAssistant.prototype.handleCommand = function(event) {
 				
 			case 'events':
 				this.controller.stageController.swapScene('events');
+				return;
 		}
 	}
 
 	this.peopleListWidget.mojo.invalidateItems(0);
 }
+
+/**
+ * Handles a tap on the "add person" list item.
+ */
+PeopleAssistant.prototype.handleListAdd = function(event) {
+	this.controller.showDialog({
+		template: 'people/add-person-dialog',
+		assistant: new AddPersonDialogAssistant(this),
+	});
+}
+
+/**
+ * Dialog assistant for the "Add Person" dialog.
+ */
+var AddPersonDialogAssistant = Class.create({
+	initialize: function(sceneAssistant) {
+		this.sceneAssistant = sceneAssistant;
+		this.nameModel = { value: '' };
+	},
+
+	setup: function(widget) {
+		var controller = this.sceneAssistant.controller;
+		this.widget = widget;
+		
+		controller.setupWidget('okButton', {
+			label: $L('OK'),
+		}, { buttonClass: 'affirmative' });
+		controller.setupWidget('cancelButton', {
+			type: Mojo.Widget.defaultButton,
+			label: $L('Cancel'),
+		}, { buttonClass: 'negative' });
+		controller.setupWidget('add-person-name', {
+			hintText: 'Name...',
+		}, this.nameModel);
+		
+		controller.listen('okButton', Mojo.Event.tap, this.handleOkTap.bind(this));
+		controller.listen('cancelButton', Mojo.Event.tap, this.widget.mojo.close);
+	},
+	
+	handleOkTap: function(event) {
+		try {
+		if (this.nameModel.value) {
+			var person = new Person(0, this.nameModel.value, 0);
+			person.add();
+			Person.saveList();
+
+			// Make the list update itself
+			var mojo = this.sceneAssistant.peopleListWidget.mojo;
+			Person.getCount(function(length) {
+				mojo.setLengthAndInvalidate(length);
+				mojo.revealItem(this.lastItemTapped ? this.lastItemTapped : length - 1);
+			});
+		}
+
+		this.widget.mojo.close();
+	} catch (e) { Mojo.Log.error(e); throw e; }
+	},
+});

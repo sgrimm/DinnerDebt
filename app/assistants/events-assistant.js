@@ -23,20 +23,36 @@ EventsAssistant.prototype.setup = function() {
 			},
 			addItemLabel : $L('Add Event'),
 		});
-	
+
+	this.controller.setupWidget(Mojo.Menu.viewMenu, {}, {
+			items: [
+				{
+					toggleCmd: 'events',
+					items: [
+						{ label: 'Events', command: 'events', width: 160 },
+						{ label: 'People', command: 'people', width: 160 },
+					],
+				},
+			],
+		});
+
 	/* add event handlers to listen to events from widgets */
-	Mojo.Event.listen($('eventsHeader'), Mojo.Event.tap, this.handleHeaderTap.bind(this));
-	
 	this.eventsList = this.controller.get('eventsList');
 	this.controller.listen('eventsList', Mojo.Event.listTap, this.handleEventTap.bind(this));
 	this.controller.listen('eventsList', Mojo.Event.listAdd, this.handleAddTap.bind(this));
 }
 
 EventsAssistant.prototype.itemsCallback = function(listWidget, offset, count){
-	DDEvent.getList(
-		function(list) {
-			listWidget.mojo.noticeUpdatedItems(offset, list.slice(offset,offset+count));
-		});
+	try {
+		DDEvent.getList(
+			function(list) {
+				listWidget.mojo.noticeUpdatedItems(offset, list.slice(offset,offset+count));
+			});
+	}
+	catch (e) {
+		Mojo.Log.error("Can't populate event list", e);
+		throw e;
+	}
 };
 
 EventsAssistant.prototype.formatTotal = function(val, obj) {
@@ -73,8 +89,15 @@ EventsAssistant.prototype.cleanup = function(event) {
 /**
  * Handles a tap on the "Events" header (switches to People view.)
  */
-EventsAssistant.prototype.handleHeaderTap = function(event) {
-	this.controller.stageController.swapScene('people');
+EventsAssistant.prototype.handleCommand = function(event) {
+	this.controller = Mojo.Controller.stageController.activeScene();
+	if (event.type == Mojo.Event.command) {
+		switch (event.command) {
+			case 'people':
+				this.controller.stageController.swapScene('people');
+				break;
+		}
+	}
 }
 
 /**

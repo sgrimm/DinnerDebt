@@ -281,6 +281,7 @@ var DDEvent = Class.create({
 		// else we were editing the existing list item in place anyway
 		
 		DDEvent.saveList();
+		Person.saveList();
 	},
 });
 

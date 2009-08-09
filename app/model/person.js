@@ -45,20 +45,30 @@ var Person = Class.create({
 		}
 		this.balance -= amount;
 	},
+	
+	/**
+	 * Adds this person to the person list.
+	 */
+	add : function() {
+		if (! this.id) {
+			this.id = Person.getUnusedId();
+			Person.list[this.id] = this;
+			Person.saveList();
+			Person.visibleCount++;
+		}
+		// else we were already on the list
+	},
 });
 
 /**
  * List of people, indexed by ID.
  */
-Person.list = {
-	1 : new Person(1, 'Steve', -10000),
-	2 : new Person(2, 'Julie', 0),
-	3 : new Person(3, 'John', 5505),
-	4 : new Person(4, 'Yu-Ting', 0),
-	5 : new Person(5, 'Mike', 3495),
-	6 : new Person(6, 'Shelley', 2008),
-	7 : new Person(7, 'Eric', -1008),
-};
+Person.list = null;
+
+/**
+ * Number of visible people in list.
+ */
+Person.visibleCount = 0;
 
 /** Sort list by name */
 Person.SORT_NAME = 0;
@@ -86,11 +96,19 @@ Person.getList = function(sortStyle, onSuccess) {
 					return 1;
 				}
 				else {
-					return 0;
+					return a.balance - b.balance;
 				}
 			}
 			else {
-				return a.balance - b.balance;
+				if (a.balance != b.balance) {
+					return a.balance - b.balance;
+				} else if (b.name < a.name) {
+					return 1;
+				} else if (a.name > b.name) {
+					return -1;
+				} else {
+					return 0;
+				}
 			}
 		});
 
@@ -100,13 +118,16 @@ Person.getList = function(sortStyle, onSuccess) {
 
 	Mojo.Log.info("loading people");
 	depot.get("people",
-			function(obj) {
-				if (obj == null) {
-					// Newly-created DB
+			function(list) {
+				Person.list = {};
+				if (list == null) {
 					Mojo.Log.info("People list not found, creating");
-					Person.list = {};
 				} else {
-					Person.list = obj;
+					for (var id in list) {
+						var entry = list[id];
+						Person.list[id] = new Person(id, entry.name, entry.balance);
+						Person.visibleCount++;
+					}
 				}
 				Person.getList(sortStyle, onSuccess);
 			},
@@ -117,7 +138,9 @@ Person.getList = function(sortStyle, onSuccess) {
  * Saves the list of people to the database.
  */
 Person.saveList = function() {
-	depot.add("people", people,
+	// Person objects will be saved as dumb JSON objects and will
+	// be reconstituted into proper objects at load time.
+	depot.add("people", Person.list,
 			function() {},
 			function(error) { throw "Can't save people, code " + error; });
 }
@@ -133,4 +156,25 @@ Person.get = function(id){
 		Mojo.Log.error("Can't find person with id", id);
 		return null;
 	}
+}
+
+/**
+ * Returns an unused ID number.
+ */
+Person.getUnusedId = function() {
+	var maxId = 0;
+	for (var id in Person.list) {
+		if (id > maxId) {
+			maxId = id;
+		}
+	}
+
+	return maxId + 1;
+}
+
+/**
+ * Returns the number of visible people in the database.
+ */
+Person.getCount = function(onSuccess) {
+	onSuccess(Person.visibleCount);
 }

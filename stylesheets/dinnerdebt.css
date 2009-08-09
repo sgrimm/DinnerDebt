@@ -1,6 +1,4 @@
 /* Put Application specific CSS here. */
-.dd-balance-negative { color: #ff0000; font-style: italic; }
-.dd-balance-positive { color: #00f000; }
 .dd-bottom { bottom: 0; }
 
 .dd-bordered {
@@ -13,10 +11,21 @@
 	top: -10px;
 }
 
+/************* people list *************/
+.dd-balance-negative {
+	color: #ff0000;
+	font-style: italic;
+}
+
+.dd-balance-positive { 
+}
+
+
 /************** event list *************/
 .dd-event-price {
 	min-width: 80px;
 }
+
 
 /************** edit event *************/
 #subtotal {
