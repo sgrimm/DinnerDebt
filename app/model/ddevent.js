@@ -12,7 +12,7 @@ var DDEvent = Class.create({
 			this.total = total;
 			this.date = date;
 			this.participations = parts;
-			this.payerId = payer;
+			this.payer = payer;
 		} else {
 			this.participations = [];	// otherwise we'll reference the prototype's array
 			this.date = new Date();
@@ -57,14 +57,14 @@ var DDEvent = Class.create({
 	/**
 	 * ID of person who paid the bill.
 	 */
-	payerId: 0,
+	payer: null,
 
 	/**
 	 * Sets the subtotal, adjusting the total accordingly.
 	 */
 	setSubtotal : function(amount) {
 		this.subtotal = amount;
-		this.total = this.subtotal + this.getTipAmount();
+		this._setTotal(this.subtotal + this.getTipAmount());
 	},
 
 	/**
@@ -72,14 +72,14 @@ var DDEvent = Class.create({
 	 */
 	setTipPercent : function(percent) {
 		this.tipPercent = percent;
-		this.total = this.subtotal + this.getTipAmount();
+		this._setTotal(this.subtotal + this.getTipAmount());
 	},
 
 	/**
 	 * Sets the total, adjusting the tip percentage (and possibly subtotal) accordingly.
 	 */
 	setTotal : function(total) {
-		this.total = total;
+		this._setTotal(total);
 		if (!this.subtotal) {
 			if (!this.tipPercent) {
 				// No tip, no subtotal: set subtotal to total
@@ -92,6 +92,17 @@ var DDEvent = Class.create({
 			// Subtotal: set tip percentage, overriding existing value if any
 			this.tipPercent = ((this.total / this.subtotal) * 100) - 100;
 		}
+	},
+	
+	/**
+	 * Sets the raw total, adjusting the payer's balance. Internal only.
+	 */
+	_setTotal : function(newTotal) {
+		if (this.payer) {
+			this.payer.debit(this.total);
+			this.payer.credit(newTotal);
+		}
+		this.total = newTotal;
 	},
 
 	/**
@@ -126,19 +137,39 @@ var DDEvent = Class.create({
 	},
 
 	/**
-	 * Sets the ID of hte payer.
+	 * Sets the payer.
 	 */
-	setPayerId: function(id) {
-		this.payerId = id;
+	setPayer: function(person) {
+		if (this.payer) {
+			this.payer.debit(this.total);
+		}
+		this.payer = person;
+		if (this.payer) {
+			this.payer.credit(this.total);
+		}
 	},
 	
 	/**
-	 * Returns the ID of the payer.
+	 * Returns the payer.
+	 */
+	getPayer: function() {
+		return this.payer;
+	},
+
+	/**
+	 * Returns the payer's ID.
 	 */
 	getPayerId: function() {
-		return this.payerId;
+		return this.payer ? this.payer.id : 0;
 	},
 	
+	/**
+	 * Sets the payer by ID.
+	 */
+	setPayerId: function(id) {
+		this.setPayer(id ? Person.get(id) : null);
+	},
+
 	/**
 	 * Finds the participation object for a particular user.
 	 *
@@ -281,7 +312,7 @@ DDEvent.getList = function(onSuccess) {
 											  e.tipPercent, e.total,
 											  new Date(e.date),
 											  realParts,
-											  e.payerId));
+											  Person.get(e.payerId)));
 
 						// We passed in an empty participants list; now fill it in
 						var simpleParts = e.participations;
@@ -334,7 +365,7 @@ DDEvent.saveList = function() {
 			total: e.total,
 			date: e.date.getTime(),
 			participations: partList,
-			payerId: e.payerId,
+			payerId: e.payer ? e.payer.id : null,
 		});
 	}
 
