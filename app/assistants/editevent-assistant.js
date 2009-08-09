@@ -1,5 +1,5 @@
 var EditeventAssistant = Class.create({
-	initialize : function(ddEvent) {
+	initialize : function(ddEvent, stageAssistant) {
 		/* this is the creator function for your scene assistant object. It will be passed all the 
 		   additional parameters (after the scene name) that were passed to pushScene. The reference
 		   to the scene controller (this.controller) has not be established yet, so any initialization
@@ -9,6 +9,8 @@ var EditeventAssistant = Class.create({
 		} else {
 			this.ddEvent = new DDEvent();
 		}
+		
+		this.stageAssistant = stageAssistant;
 
 		this.priceModel = {};
 		this.listPositions = {};
@@ -112,7 +114,7 @@ var EditeventAssistant = Class.create({
 	 * itemsCallback() and does most of the actual work.
 	 */
 	populatePeopleList: function(listWidget, offset, count) {
-		Person.getList(Person.SORT_NAME,
+		Person.getList(this.stageAssistant.personSortOrder,
 			function(list) {
 				var updatedList = [];
 				for (var i = 0; i < list.length; i++) {
