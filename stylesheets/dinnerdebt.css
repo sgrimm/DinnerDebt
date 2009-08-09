@@ -22,8 +22,12 @@
 
 
 /************** event list *************/
+.dd-event-date {
+}
+
 .dd-event-price {
-	min-width: 80px;
+	min-width: 3.5em;
+	text-align: right;
 }
 
 
