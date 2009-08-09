@@ -1,7 +1,6 @@
 /* Put Application specific CSS here. */
 .dd-balance-negative { color: #ff0000; font-style: italic; }
 .dd-balance-positive { color: #00f000; }
-.dd-list-item { padding-left: .5em; }
 .dd-bottom { bottom: 0; }
 
 .dd-bordered {
@@ -72,17 +71,21 @@
 	width: 23%;
 }
 
-.dd-payingRow {
-	margin: -10px 0 0 0;
+.dd-personAmount {
+	margin-top: -5px;
 }
 
-.dd-payingCheckbox {
-	display: inline;
-	float: left;
+.dd-payerButton {
+	margin: -15px 0 0 0;
+}
+
+.dd-list-item {
+	padding-left: .5em;
 }
 
 .dd-amountRow {
-	background-color: #ff0000;
+	height: 52px;
+	margin-left: 30px;
 }
 
 .dd-sharefixed {

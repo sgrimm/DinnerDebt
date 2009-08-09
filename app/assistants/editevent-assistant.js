@@ -19,7 +19,7 @@ var EditeventAssistant = Class.create({
 			/* this function is for setup tasks that have to happen when the scene is first created */
 			this.participationModels = {};
 			this.drawersInitialized = {};
-		
+
 			/* use Mojo.View.render to render view templates and add them to the scene, if needed. */
 
 			/* setup widgets here */
@@ -89,8 +89,10 @@ var EditeventAssistant = Class.create({
 	listPositions : {},
 
 	itemsCallback : function(listWidget, offset, count) {
+		var biggestDebt = 0;
+
 		// load participant list
-		Person.getList(this.sortOrder,
+		Person.getList(Person.SORT_NAME,
 			function(list) {
 				var updatedList = [];
 				for (var i = 0; i < list.length; i++) {
@@ -107,6 +109,11 @@ var EditeventAssistant = Class.create({
 					this.controller.setupWidget('shareCheckbox' + id, {
 						modelProperty: 'isSharing'
 					}, this.participationModels[id]);
+					
+					if (biggestDebt > entry.balance || !this.ddEvent.getPayer()) {
+						biggestDebt = entry.balance;
+						this.setPayer(id);
+					}
 				}
 
 				listWidget.mojo.noticeUpdatedItems(offset, updatedList.slice(offset, offset+count));
@@ -208,8 +215,8 @@ var EditeventAssistant = Class.create({
 			// give us a chance to call setupWidget to alter the default attributes.
 		
 			this.controller.setupWidget('personDrawer' + id, {}, {open:false});
-			this.controller.setupWidget('personPayer' + id, {
-				modelProperty: 'isPayer'
+			this.controller.setupWidget('personPayerButton' + id, {
+				label: $L('This person is paying'),
 			});
 			this.controller.setupWidget('additionalAmount' + id, {
 				hintText: '0.00',
@@ -225,30 +232,15 @@ var EditeventAssistant = Class.create({
 
 			this.controller.update(this.controller.get('personDrawerContainer' + id),
 				'<div id="personDrawer'+id+'" class="dd-drawer" x-mojo-element="Drawer">'+
-					'<div class="palm-group unlabeled">'+
-						'<div id="personPayerRow'+id+'" class="palm-row first">'+
-							'<div class="palm-row-wrapper">'+
-								'<div class="dd-payingRow">'+
-									'<div id="personPayer'+id+'" class="dd-payingCheckbox" x-mojo-element="CheckBox"></div>'+
-									'<div class="dd-amountIs">This person is paying</div>'+
-								'</div>'+
-							'</div>'+
-						'</div>'+
-						'<div class="palm-row last">'+
-							'<div class="palm-row-wrapper dd-amountRow">'+
-								'<div class="dd-amountRow">'+
-									'<div id="shareIsFixed'+id+'" class="dd-sharefixed" x-mojo-element="ToggleButton"></div>'+
-									'<div class="dd-amountIs">amount:</div>'+
-									'<div id="additionalAmount'+id+'" class="dd-additionalAmount" x-mojo-element="TextField"></div>'+
-								'</div>'+
-							'</div>'+
-						'</div>'+
+					'<div id="personPayerButton'+id+'" class="dd-payerButton" x-mojo-element="Button"></div>'+
+					'<div class="dd-amountRow">'+
+						'<div id="shareIsFixed'+id+'" class="dd-sharefixed" x-mojo-element="ToggleButton"></div>'+
+						'<div class="dd-amountIs">amount:</div>'+
+						'<div id="additionalAmount'+id+'" class="dd-additionalAmount" x-mojo-element="TextField"></div>'+
 					'</div>'+
 				'</div>');
 
-			this.controller.setWidgetModel($('personPayer' + id), this.participationModels[id]);
-			this.controller.listen('personPayerRow' + id, Mojo.Event.tap, this.togglePayingCheckbox.bind(this, id));
-			this.controller.listen('personPayer' + id, Mojo.Event.propertyChange, this.togglePayingCheckbox.bind(this, id));
+			this.controller.listen('personPayerButton' + id, Mojo.Event.tap, this.setPayer.bind(this, id));
 			this.controller.listen('additionalAmount' + id, Mojo.Event.propertyChange, this.recalculateShare.bind(this, id));
 			this.controller.listen('shareIsFixed' + id, Mojo.Event.propertyChange, this.recalculateShare.bind(this, id));
 
@@ -336,21 +328,6 @@ var EditeventAssistant = Class.create({
 	},
 
 	/**
-	 * Toggles the "this person is paying" checkbox.
-	 */
-	togglePayingCheckbox : function(id, event) {
-		if (this.ddEvent.getPayerId() == id) {
-			this.setPayer(0);
-		} else {
-			this.setPayer(id);
-		}
-
-		if (event) {
-			event.stopPropagation();
-		}
-	},
-
-	/**
 	 * Sets the payer to a particular person and clears all the other checkboxes.
 	 */
 	setPayer : function(newId) {
@@ -361,13 +338,24 @@ var EditeventAssistant = Class.create({
 		}
 
 		if (oldId) {
-			this.controller.get('isPayerMessage' + oldId).innerHTML = '';
+			var elt = this.controller.get('isPayerMessage' + oldId);
+			if (elt) {
+				elt.innerHTML = '';
+			}
 			this.participationModels[oldId].isPayer = false;
 			this.controller.modelChanged(this.participationModels[oldId]);
 		}
 		if (newId) {
-			this.controller.get('isPayerMessage' + newId).innerHTML =
-				this.formatIsPayer(true);
+			var elt = this.controller.get('isPayerMessage' + newId);
+			if (elt) {
+				elt.innerHTML = this.formatIsPayer(true);
+
+				// Work around a WebKit bug by forcing it to redo layout;
+				// without this, the "(paying)" message will force the
+				// total off the right side of the screen.
+				elt = this.controller.get('total' + newId);
+				elt.innerHTML = elt.innerHTML + '<span></span>';
+			}
 			this.participationModels[newId].isPayer = true;
 			this.controller.modelChanged(this.participationModels[newId]);
 		}
