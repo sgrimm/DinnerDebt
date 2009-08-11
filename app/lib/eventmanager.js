@@ -38,7 +38,6 @@ var EventManager = Class.create({
 			var args = this.eventHandlers[i];
 			this.sceneController.listen.apply(this.sceneController, args);
 		}
-Mojo.Log.info('activated',i,'handlers');
 	},
 
 	/**
@@ -53,6 +52,5 @@ Mojo.Log.info('activated',i,'handlers');
 			var args = this.eventHandlers[i];
 			this.sceneController.stopListening.apply(this.sceneController, args);
 		}
-Mojo.Log.info('deactivated',i,'handlers');
 	},
 });
