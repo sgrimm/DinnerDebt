@@ -19,6 +19,8 @@ var EditeventAssistant = Class.create({
 	setup : function() {
 		try {
 			/* this function is for setup tasks that have to happen when the scene is first created */
+			this.mgr = new EventManager(this.controller);
+
 			this.participationModels = {};
 			this.drawersInitialized = {};
 
@@ -78,10 +80,10 @@ var EditeventAssistant = Class.create({
 			this.updateTipAmount();
 
 			/* add event handlers to listen to events from widgets */
-			this.controller.listen('subtotal', Mojo.Event.propertyChange, this.subtotalChanged.bind(this));
-			this.controller.listen('tipPercent', Mojo.Event.propertyChange, this.tipPercentChanged.bind(this));
-			Mojo.Event.listen($('total'), Mojo.Event.propertyChange, this.totalChanged.bind(this));
-			Mojo.Event.listen($('peopleList'), Mojo.Event.listTap, this.handlePeopleTap.bind(this));
+			this.mgr.listen('subtotal', Mojo.Event.propertyChange, this.subtotalChanged.bind(this));
+			this.mgr.listen('tipPercent', Mojo.Event.propertyChange, this.tipPercentChanged.bind(this));
+			this.mgr.listen('total', Mojo.Event.propertyChange, this.totalChanged.bind(this));
+			this.mgr.listen('peopleList', Mojo.Event.listTap, this.handlePeopleTap.bind(this));
 		
 			this.peopleListWidget = this.controller.get('peopleList');
 
@@ -143,9 +145,9 @@ var EditeventAssistant = Class.create({
 	itemRenderedCallback : function(listWidget, itemModel, itemNode) {
 		var id = itemModel.id;
 
-		this.controller.listen('total' + id, Mojo.Event.tap, this.handleDrawerButtonTap.bind(this, id));
+		this.mgr.listen('total' + id, Mojo.Event.tap, this.handleDrawerButtonTap.bind(this, id));
 		this.controller.setWidgetModel($('shareCheckbox' + id), this.participationModels[id]);
-		this.controller.listen('shareCheckbox' + id, Mojo.Event.propertyChange,
+		this.mgr.listen('shareCheckbox' + id, Mojo.Event.propertyChange,
 								this.recalculateShare.bind(this, id));
 	},
 
@@ -188,14 +190,12 @@ var EditeventAssistant = Class.create({
 	},
 
 	activate : function(event) {
-		/* put in event handlers here that should only be in effect when this scene is active. For
-		   example, key handlers that are observing the document */
+		this.mgr.activateHandlers();
 	},
 
 
 	deactivate : function(event) {
-		/* remove any event handlers you added in activate and do any other cleanup that should happen before
-		   this scene is popped or another scene is pushed on top */
+		this.mgr.deactivateHandlers();
 	},
 
 	/**
@@ -259,14 +259,14 @@ var EditeventAssistant = Class.create({
 					'</div>'+
 				'</div>');
 
-			this.controller.listen('personPayerButton' + id, Mojo.Event.tap, this.setPayer.bind(this, id));
-			this.controller.listen('additionalAmount' + id, Mojo.Event.propertyChange, this.recalculateShare.bind(this, id));
-			this.controller.listen('shareIsFixed' + id, Mojo.Event.propertyChange, this.recalculateShare.bind(this, id));
+			this.mgr.listen('personPayerButton' + id, Mojo.Event.tap, this.setPayer.bind(this, id));
+			this.mgr.listen('additionalAmount' + id, Mojo.Event.propertyChange, this.recalculateShare.bind(this, id));
+			this.mgr.listen('shareIsFixed' + id, Mojo.Event.propertyChange, this.recalculateShare.bind(this, id));
 
 			this.drawersInitialized[id] = true;
 
 			// Swallow taps on the drawer so they don't toggle the checkbox.
-			this.controller.listen('personDrawer' + id, Mojo.Event.tap, this.handleDrawerTap.bind(this));
+			this.mgr.listen('personDrawer' + id, Mojo.Event.tap, this.handleDrawerTap.bind(this));
 
 		}
 

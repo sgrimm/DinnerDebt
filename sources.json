@@ -15,8 +15,5 @@
     {"source": "app\/model\/person.js"},
     {"source": "app\/model\/ddevent.js"},
     {"source": "app\/model\/participation.js"},
-    {
-        "scenes": "new-scene",
-        "source": "app\/assistants\/new-scene-assistant.js"
-    }
+    {"source": "app\/lib\/eventmanager.js"},
 ]

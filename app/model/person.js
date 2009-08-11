@@ -116,7 +116,6 @@ Person.getList = function(sortStyle, onSuccess) {
 		return;
 	}
 
-	Mojo.Log.info("loading people");
 	depot.get("people",
 			function(list) {
 				Person.list = {};

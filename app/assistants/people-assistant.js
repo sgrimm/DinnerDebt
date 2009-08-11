@@ -8,6 +8,7 @@ function PeopleAssistant(stageAssistant) {
 
 PeopleAssistant.prototype.setup = function() {
 	/* this function is for setup tasks that have to happen when the scene is first created */
+	this.mgr = new EventManager(this.controller);
 
 	/* use Mojo.View.render to render view templates and add them to the scene, if needed. */
 	
@@ -57,7 +58,7 @@ PeopleAssistant.prototype.setup = function() {
 	this.controller.setupWidget('sort-menu', undefined, this.sortMenuModel);
 
 	/* add event handlers to listen to events from widgets */
-	this.controller.listen('peopleList', Mojo.Event.listAdd, this.handleListAdd.bind(this));
+	this.mgr.listen('peopleList', Mojo.Event.listAdd, this.handleListAdd.bind(this));
 
 	this.peopleListWidget = this.controller.get('peopleList');
 }
@@ -80,14 +81,12 @@ PeopleAssistant.prototype.formatName = function(val, obj) {
 }
 
 PeopleAssistant.prototype.activate = function(event) {
-	/* put in event handlers here that should only be in effect when this scene is active. For
-	   example, key handlers that are observing the document */
+	this.mgr.activateHandlers();
 }
 
 
 PeopleAssistant.prototype.deactivate = function(event) {
-	/* remove any event handlers you added in activate and do any other cleanup that should happen before
-	   this scene is popped or another scene is pushed on top */
+	this.mgr.deactivateHandlers();
 }
 
 PeopleAssistant.prototype.cleanup = function(event) {
@@ -135,6 +134,7 @@ PeopleAssistant.prototype.handleListAdd = function(event) {
  */
 var AddPersonDialogAssistant = Class.create({
 	initialize: function(sceneAssistant) {
+		this.mgr = new EventManager(sceneAssistant.controller);
 		this.sceneAssistant = sceneAssistant;
 		this.nameModel = { value: '' };
 	},
@@ -154,8 +154,16 @@ var AddPersonDialogAssistant = Class.create({
 			hintText: 'Name...',
 		}, this.nameModel);
 		
-		controller.listen('okButton', Mojo.Event.tap, this.handleOkTap.bind(this));
-		controller.listen('cancelButton', Mojo.Event.tap, this.widget.mojo.close);
+		this.mgr.listen('okButton', Mojo.Event.tap, this.handleOkTap.bind(this));
+		this.mgr.listen('cancelButton', Mojo.Event.tap, this.widget.mojo.close);
+	},
+
+	activate: function() {
+		this.mgr.activateHandlers();
+	},
+
+	deactivate: function() {
+		this.mgr.deactivateHandlers();
 	},
 	
 	handleOkTap: function(event) {

@@ -10,6 +10,7 @@ function EventsAssistant(stageAssistant) {
 
 EventsAssistant.prototype.setup = function() {
 	/* this function is for setup tasks that have to happen when the scene is first created */
+	this.mgr = new EventManager(this.controller);
 
 	/* use Mojo.View.render to render view templates and add them to the scene, if needed. */
 	
@@ -39,8 +40,8 @@ EventsAssistant.prototype.setup = function() {
 
 	/* add event handlers to listen to events from widgets */
 	this.eventsList = this.controller.get('eventsList');
-	this.controller.listen('eventsList', Mojo.Event.listTap, this.handleEventTap.bind(this));
-	this.controller.listen('eventsList', Mojo.Event.listAdd, this.handleAddTap.bind(this));
+	this.mgr.listen('eventsList', Mojo.Event.listTap, this.handleEventTap.bind(this));
+	this.mgr.listen('eventsList', Mojo.Event.listAdd, this.handleAddTap.bind(this));
 }
 
 EventsAssistant.prototype.itemsCallback = function(listWidget, offset, count){
@@ -74,10 +75,23 @@ EventsAssistant.prototype.activate = function(event) {
 		mojo.setLengthAndInvalidate(length);
 		mojo.revealItem(this.lastItemTapped ? this.lastItemTapped : length - 1);
 	});
+
+	try {
+		this.mgr.activateHandlers();
+	}
+	catch (e) {
+		Mojo.Log.warn(e);
+	}
 }
 
 
 EventsAssistant.prototype.deactivate = function(event) {
+	try {
+		this.mgr.deactivateHandlers();
+	}
+	catch (e) {
+		Mojo.Log.warn(e);
+	}
 	/* remove any event handlers you added in activate and do any other cleanup that should happen before
 	   this scene is popped or another scene is pushed on top */
 }
