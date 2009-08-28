@@ -85,3 +85,26 @@ Participation.complexify = function(obj) {
 			obj.additionalAmount,
 			obj.total);
 }
+
+/**
+ * Fetches the participation data for a particular event.
+ */
+Participation.getByEvent = function(ddEventId, onSuccess, onFailure) {
+	if (! ddEventId || ! onSuccess) {
+		throw "Required parameter missing in Participation.getByEvent";
+	}
+
+	var reason = null;
+	var ddEvent = null;
+	try {
+		ddEvent = DDEvent.get(ddEventId);
+	} catch (e) {
+		reason = e;
+	}
+	if (ddEvent) {
+		onSuccess(ddEvent.participations);
+	} else if (onFailure) {
+		onFailure(ddEventId, reason);
+	}
+}
+

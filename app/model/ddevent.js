@@ -190,15 +190,15 @@ var DDEvent = Class.create({
 	 * it into the array if needed. We'll strip inactive ones out at
 	 * save time.
 	 */
-	getParticipationForUser: function(id) {
+	getParticipationForUser: function(id, callback) {
 		var index = this.findParticipationForUser(id);
 		if (index > -1) {
-			return this.participations[index];
+			callback(this.participations[index]);
+		} else {
+			var part = new Participation(Person.get(id), this);
+			this.participations.push(part);
+			callback(part);
 		}
-
-		var part = new Participation(Person.get(id), this);
-		this.participations.push(part);
-		return part;
 	},
 	
 	/**
