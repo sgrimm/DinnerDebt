@@ -59,6 +59,8 @@ PeopleAssistant.prototype.setup = function() {
 
 	/* add event handlers to listen to events from widgets */
 	this.mgr.listen('peopleList', Mojo.Event.listAdd, this.handleListAdd.bind(this));
+	this.mgr.listen('peopleList', Mojo.Event.listReorder,
+					this.handleListReorder.bind(this));
 
 	this.peopleListWidget = this.controller.get('peopleList');
 }
@@ -107,9 +109,9 @@ PeopleAssistant.prototype.handleCommand = function(event) {
 				this.stageAssistant.setPersonSortOrder(Person.SORT_BALANCE);
 				break;
 			case 'manual':
-				Mojo.Log.warn('Manual sort not implemented yet');
+				this.stageAssistant.setPersonSortOrder(Person.SORT_MANUAL);
 				break;
-				
+
 			case 'events':
 				this.controller.stageController.swapScene('events', this.stageAssistant);
 				return;
@@ -127,6 +129,20 @@ PeopleAssistant.prototype.handleListAdd = function(event) {
 		template: 'people/add-person-dialog',
 		assistant: new AddPersonDialogAssistant(this),
 	});
+}
+
+/**
+ * Handles the user dragging an item on the person list to reorder it.
+ */
+PeopleAssistant.prototype.handleListReorder = function(event) {
+	if (this.stageAssistant.personSortOrder == Person.SORT_MANUAL) {
+		Person.reposition(event.fromIndex, event.toIndex);
+	} else {
+		// Reset the list order
+		// XXX - should just disable repositioning when sort order
+		// is not Manual
+		this.peopleListWidget.mojo.invalidateItems(0);
+	}
 }
 
 /**

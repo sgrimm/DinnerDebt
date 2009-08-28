@@ -2,15 +2,14 @@
  * A single person's private data.
  */
 var Person = Class.create({
-	initialize : function(id, name, balance) {
+	initialize : function(id, name, balance, position) {
 		this.id = id;
 		this.name = name;
 		this.balance = balance;
+		this.position = position;
 	},
 
-	/**
-	 * A unique identifier for the person.
-	 */
+	/** A unique identifier for the person. */
 	id : 0,
 	
 	/**
@@ -25,6 +24,9 @@ var Person = Class.create({
 	 * integer number of cents.
 	 */
 	balance : 0,
+
+	/** Position in the manually-sorted list. */
+	position : 0,
 
 	/**
 	 * Adds credit to a person's balance.
@@ -52,6 +54,7 @@ var Person = Class.create({
 	add : function() {
 		if (! this.id) {
 			this.id = Person.getUnusedId();
+			this.position = Person.getNextPosition();
 			Person.list[this.id] = this;
 			Person.saveList();
 			Person.visibleCount++;
@@ -76,19 +79,26 @@ Person.SORT_NAME = 0;
 /** Sort list by balance */
 Person.SORT_BALANCE = 1;
 
+/** Sort list by manual ordering */
+Person.SORT_MANUAL = 2;
+
 /**
- * Loads the list of people from the database.
- * 
- * @param sortStyle Person.SORT_NAME or Person.SORT_BALANCE
+ * Returns a sorted copy of the person list. (Internal only.)
  */
-Person.getList = function(sortStyle, onSuccess) {
+Person._sortList = function(sortStyle) {
 	if (Person.list != null) {
 		var list = [];
 		for (var id in Person.list) {
+			// Migrate old positionless people
+			if (!Person.list[id].position) {
+				Person.list[id].position =
+					Person.getNextPosition();
+			}
 			list.push(Person.list[id]);
 		}
 		list.sort(function(a,b) {
-			if (sortStyle == Person.SORT_NAME) {
+			switch (sortStyle) {
+			case Person.SORT_NAME:
 				if (a.name < b.name) {
 					return -1;
 				}
@@ -98,20 +108,42 @@ Person.getList = function(sortStyle, onSuccess) {
 				else {
 					return a.balance - b.balance;
 				}
-			}
-			else {
+
+			case Person.SORT_BALANCE:
 				if (a.balance != b.balance) {
 					return a.balance - b.balance;
 				} else if (b.name < a.name) {
 					return 1;
-				} else if (a.name > b.name) {
+				} else if (b.name > a.name) {
 					return -1;
 				} else {
 					return 0;
 				}
+
+			default:
+				// Positions are never equal
+				if (a.position == b.position) {
+					throw "Positions can't be equal!";
+				}
+				return a.position - b.position;
 			}
+
 		});
 
+		return list;
+	} else {
+		throw "Can't sort list before loading it";
+	}
+}
+
+/**
+ * Loads the list of people from the database.
+ * 
+ * @param sortStyle Person.SORT_NAME or Person.SORT_BALANCE
+ */
+Person.getList = function(sortStyle, onSuccess) {
+	if (Person.list != null) {
+		var list = Person._sortList(sortStyle);
 		onSuccess(list);
 		return;
 	}
@@ -124,7 +156,8 @@ Person.getList = function(sortStyle, onSuccess) {
 				} else {
 					for (var id in list) {
 						var entry = list[id];
-						Person.list[id] = new Person(id, entry.name, entry.balance);
+						Person.list[id] = new Person(id, entry.name,
+												entry.balance, entry.position);
 						Person.visibleCount++;
 					}
 				}
@@ -168,7 +201,37 @@ Person.getUnusedId = function() {
 		}
 	}
 
-	return maxId + 1;
+	return 1 + maxId;	// maxId may be a string, so this forces a cast
+}
+
+/**
+ * Returns a position number for the end of the list.
+ */
+Person.getNextPosition = function() {
+	var maxPos = 0;
+	for (var id in Person.list) {
+		if (Person.list[id].position > maxPos) {
+			maxPos = Person.list[id].position;
+		}
+	}
+
+	return maxPos + 1;
+}
+
+/**
+ * Moves a Person to a different position on the manually-ordered list.
+ */
+Person.reposition = function(fromIndex, toIndex) {
+	var list = Person._sortList(Person.SORT_MANUAL);
+	var item = list[fromIndex];
+	list.splice(fromIndex, 1);
+	list.splice(toIndex > fromIndex ? toIndex - 1 : toIndex, 0, item);
+
+	for (var i = 0; i < list.length; i++) {
+		list[i].position = i + 1;
+	}
+
+	Person.saveList();
 }
 
 /**
