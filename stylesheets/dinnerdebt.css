@@ -22,6 +22,10 @@
 
 
 /************** event list *************/
+.dd-event-table {
+	margin-top: -.5ex;
+}
+
 .dd-event-date {
 }
 
