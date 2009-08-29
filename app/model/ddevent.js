@@ -308,6 +308,7 @@ DDEvent.getList = function(onSuccess) {
 						var e = list[i];
 						var dde;
 						var realParts = [];
+Mojo.Log.info('pushing event',e.description);
 						DDEvent.list.push(
 							dde = new DDEvent(e.id, e.description, e.subtotal,
 											  e.tipPercent, e.total,
@@ -396,16 +397,41 @@ DDEvent.sortList = function() {
 }
 
 /**
- * Returns the event with a particular ID.
+ * Returns the raw event object for a particular ID, without attempting to
+ * initialize its contents.
+ *
+ * XXX - should build an index of events so we don't have to linear-search
  */
-DDEvent.get = function(id) {
-	// XXX - hash lookups FTW
+DDEvent.getRaw = function(id) {
 	for (var i = 0; i < DDEvent.list.length; i++) {
 		if (DDEvent.list[i].id == id) {
 			return DDEvent.list[i];
 		}
 	}
-
-	Mojo.Log.error("Can't find event with id", id);
 	return null;
+}
+
+/**
+ * Returns the event with a particular ID with all its lazy-loadable data
+ * filled in.
+ */
+DDEvent.get = function(id, onSuccess, onFailure) {
+	var ddEvent = DDEvent.getRaw(id);
+	if (ddEvent) {
+		if (ddEvent.participations) {
+			onSuccess(ddEvent);
+		} else {
+			Participation.getForEvent(id, function(part) {
+					ddEvent.participations = part;
+					onSuccess(ddEvent);
+				}, function(id, reason) {
+					onFailure(reason);
+				});
+		}
+	} else {
+		Mojo.Log.error("Can't find event with id", id);
+		if (onFailure) {
+			onFailure(id);
+		}
+	}
 }

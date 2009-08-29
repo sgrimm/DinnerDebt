@@ -79,7 +79,7 @@ var Participation = Class.create({
 Participation.complexify = function(obj) {
 	return new Participation(
 			Person.get(obj.personId),
-			DDEvent.get(obj.ddEventId),
+			DDEvent.getRaw(obj.ddEventId),
 			obj.isSharing,
 			obj.shareIsFixed,
 			obj.additionalAmount,
@@ -89,7 +89,7 @@ Participation.complexify = function(obj) {
 /**
  * Fetches the participation data for a particular event.
  */
-Participation.getByEvent = function(ddEventId, onSuccess, onFailure) {
+Participation.getForEvent = function(ddEventId, onSuccess, onFailure) {
 	if (! ddEventId || ! onSuccess) {
 		throw "Required parameter missing in Participation.getByEvent";
 	}

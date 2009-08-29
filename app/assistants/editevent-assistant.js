@@ -1,9 +1,5 @@
 var EditeventAssistant = Class.create({
 	initialize : function(ddEvent, stageAssistant) {
-		/* this is the creator function for your scene assistant object. It will be passed all the 
-		   additional parameters (after the scene name) that were passed to pushScene. The reference
-		   to the scene controller (this.controller) has not be established yet, so any initialization
-		   that needs the scene controller should be done in the setup function below. */
 		if (ddEvent) {
 			this.ddEvent = ddEvent;
 		} else {
@@ -126,13 +122,14 @@ var EditeventAssistant = Class.create({
 						id: id,
 						name: entry.name,
 					};
-					this.participationToModel(id);
 					updatedList.push(this.participationModels[id]);
 					this.listPositions[id] = offset + i;
 
 					this.controller.setupWidget('shareCheckbox' + id, {
 						modelProperty: 'isSharing'
 					}, this.participationModels[id]);
+
+					this.participationToModel(id);
 				}
 
 				listWidget.mojo.noticeUpdatedItems(offset, updatedList.slice(offset, offset+count));
@@ -438,6 +435,8 @@ var EditeventAssistant = Class.create({
 					element.innerHTML = newTotal;
 				}
 			}
+
+			this.controller.modelChanged(model);
 		}.bind(this));
 	},
 
