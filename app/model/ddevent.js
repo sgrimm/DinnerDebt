@@ -279,10 +279,36 @@ var DDEvent = Class.create({
 			DDEvent.list.push(this);
 		}
 		// else we were editing the existing list item in place anyway
-		
+
+		db.transaction(function(tx) {
+			for (var i = 0; i < this.participations.length; i++) {
+				this.participations[i].save(tx);
+			}
+		}.bind(this));
+
 		DDEvent.saveList();
 		Person.saveList();
 	},
+
+	/**
+	 * Loads any data that aren't present in the initial list of events.
+	 *
+	 * @param callback  Called with this object as a parameter when the
+	 *                  loading is complete.
+	 */
+	load : function(callback) {
+		if (this.participations) {
+			// Already loaded; nothing to do.
+			callback(this);
+		} else {
+			Participation.getForEvent(this,
+				function(participations) {
+					this.participations = participations;
+					callback(this);
+				}.bind(this));
+		}
+	},
+
 });
 
 
@@ -304,24 +330,24 @@ DDEvent.getList = function(onSuccess) {
 			function(list) {
 				DDEvent.list = [];
 				if (list != null) {
-					for (var i = 0; i < list.length; i++) {
-						var e = list[i];
-						var dde;
-						var realParts = [];
-Mojo.Log.info('pushing event',e.description);
-						DDEvent.list.push(
-							dde = new DDEvent(e.id, e.description, e.subtotal,
-											  e.tipPercent, e.total,
+					db.transaction(function(tx) {
+						for (var i = 0; i < list.length; i++) {
+							var e = list[i];
+							DDEvent.list.push(
+								new DDEvent(e.id, e.description,
+											  e.subtotal, e.tipPercent, e.total,
 											  new Date(e.date),
-											  realParts,
+											  null,
 											  Person.get(e.payerId)));
 
-						// We passed in an empty participants list; now fill it in
-						var simpleParts = e.participations;
-						for (var p = 0; p < simpleParts.length; p++) {
-							realParts.push(Participation.complexify(simpleParts[p]));
+							// Migrate participations list from legacy records
+							if (e.participations) {
+								e.participations.each(function(sp) {
+									Participation.complexify(sp).save(tx);
+								});
+							}
 						}
-					}
+					});
 					DDEvent.list = obj;
 				}
 				onSuccess(DDEvent.list);
@@ -348,16 +374,6 @@ DDEvent.saveList = function() {
 	for (var i = 0; i < DDEvent.list.length; i++) {
 		var e = DDEvent.list[i];
 
-		// We can serialize participations directly since they are
-		// just dumb container objects, but don't bother saving
-		// them for non-participants.
-		var partList = [];
-		for (var p = 0; p < e.participations.length; p++) {
-			var part = e.participations[p];
-			if (part.isWorthKeeping()) {
-				partList.push(part.simplify());
-			}
-		}
 		serializable.push({
 			id: e.id,
 			description: e.description,
@@ -366,7 +382,6 @@ DDEvent.saveList = function() {
 			// XXX - could derive the total at load time
 			total: e.total,
 			date: e.date.getTime(),
-			participations: partList,
 			payerId: e.payer ? e.payer.id : null,
 		});
 	}
@@ -409,29 +424,4 @@ DDEvent.getRaw = function(id) {
 		}
 	}
 	return null;
-}
-
-/**
- * Returns the event with a particular ID with all its lazy-loadable data
- * filled in.
- */
-DDEvent.get = function(id, onSuccess, onFailure) {
-	var ddEvent = DDEvent.getRaw(id);
-	if (ddEvent) {
-		if (ddEvent.participations) {
-			onSuccess(ddEvent);
-		} else {
-			Participation.getForEvent(id, function(part) {
-					ddEvent.participations = part;
-					onSuccess(ddEvent);
-				}, function(id, reason) {
-					onFailure(reason);
-				});
-		}
-	} else {
-		Mojo.Log.error("Can't find event with id", id);
-		if (onFailure) {
-			onFailure(id);
-		}
-	}
 }

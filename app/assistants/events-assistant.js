@@ -128,8 +128,8 @@ EventsAssistant.prototype.handleAddTap = function(event) {
  */
 EventsAssistant.prototype.handleEventTap = function(event) {
 	this.lastItemTapped = event.index;
-	DDEvent.get(event.item.id, function(ddEvent) {
-		Mojo.Log.info("Callback for event", ddEvent.id);
+	event.item.load(function(ddEvent) {
+		Mojo.Log.info("Post-load callback for event", ddEvent.id);
 		this.controller.stageController.pushScene('editevent', ddEvent,
 												this.stageAssistant);
 	}.bind(this));

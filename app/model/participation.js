@@ -54,18 +54,49 @@ var Participation = Class.create({
 		this.total = newTotal;
 	},
 
-	/** Returns a serializable (simple object) version of this participation. */
-	simplify: function() {
-		return {
-			personId: this.person.id,
-			ddEventId: this.ddEvent.id,
-			isSharing: this.isSharing,
-			shareIsFixed: this.shareIsFixed,
-			additionalAmount: this.additionalAmount,
-			total: this.total,
-		};
+	/**
+	 * Saves this participation to the database.
+	 *
+	 * @param tx   Transaction object as passed to DB transaction
+	 *             callbacks.
+	 */
+	save: function(tx, onSuccess, onFailure) {
+		if (! tx) {
+			throw "No transaction supplied to Participation.save";
+		}
+
+		if (this.isWorthKeeping()) {
+			tx.executeSql(
+				'INSERT OR REPLACE INTO participation (' +
+						'personId, eventId, isSharing, shareIsFixed,' +
+						' additionalAmount, total' +
+					') VALUES (' +
+						'?,?,?,?,?,?' +
+					')',
+				[this.person.id, this.ddEvent.id, this.isSharing,
+				 this.shareIsFixed, this.additionalAmount, this.total],
+				function(tx, result) {
+					this.id = result.insertID;
+					if (onSuccess) {
+						onSuccess();
+					}
+				}.bind(this),
+				onFailure ? onFailure : DBUtil.logFailure);
+		} else {
+			tx.executeSql(
+				'DELETE FROM participation' +
+					' WHERE personId = ?' +
+					' AND eventId = ?',
+				[this.person.id, this.ddEvent.id],
+				function(tx, result) {
+					if (onSuccess) {
+						onSuccess();
+					}
+				},
+				onFailure ? onFailure : DBUtil.logFailure);
+		}
 	},
-	
+
 	/** Returns true if this participation has any data worth keeping. */
 	isWorthKeeping: function() {
 		return this.isSharing || (this.total != 0);
@@ -83,28 +114,72 @@ Participation.complexify = function(obj) {
 			obj.isSharing,
 			obj.shareIsFixed,
 			obj.additionalAmount,
-			obj.total);
+			obj.total,
+			obj.id);
 }
 
 /**
  * Fetches the participation data for a particular event.
  */
-Participation.getForEvent = function(ddEventId, onSuccess, onFailure) {
-	if (! ddEventId || ! onSuccess) {
+Participation.getForEvent = function(ddEvent, onSuccess, onFailure) {
+	if (! ddEvent || ! onSuccess) {
 		throw "Required parameter missing in Participation.getByEvent";
 	}
 
-	var reason = null;
-	var ddEvent = null;
-	try {
-		ddEvent = DDEvent.get(ddEventId);
-	} catch (e) {
-		reason = e;
-	}
-	if (ddEvent) {
-		onSuccess(ddEvent.participations);
-	} else if (onFailure) {
-		onFailure(ddEventId, reason);
-	}
+	db.transaction(function(tx) {
+		tx.executeSql(
+			'SELECT personId, eventId, isSharing, shareIsFixed,' +
+					' additionalAmount, total' +
+				' FROM participation' +
+				' WHERE eventId = ?',
+			[ddEvent.id],
+			function(tx, result) {
+				var list = [];
+				for (var i = 0; i < result.rows.length; i++) {
+					var row = result.rows.item(i);
+					var part = new Participation(
+										Person.get(row.personId),
+										ddEvent,
+										row.isSharing,
+										row.shareIsFixed,
+										row.additionalAmount,
+										row.total);
+					list.push(part);
+				}
+
+				onSuccess(list);
+			},
+			onFailure ? onFailure : DBUtil.logFailure);
+		});
 }
 
+/**
+ * Sets up the database; this is called at app startup time.
+ */
+Participation.setupDB = function(tx, callback) {
+	tx.executeSql(
+		'CREATE TABLE IF NOT EXISTS participation (' +
+			'personId INTEGER NOT NULL,' +
+			'eventId INTEGER NOT NULL,' +
+			'isSharing INTEGER NOT NULL,' +
+			'shareIsFixed INTEGER NOT NULL,' +
+			'additionalAmount INTEGER NOT NULL,' +
+			'total INTEGER NOT NULL,' +
+			'PRIMARY KEY (eventId, personId)' +
+		')',
+		[],
+		function(tx, resultSet) {
+			tx.executeSql(
+				'CREATE INDEX IF NOT EXISTS participation_i_event' +
+					' ON participation (personId)',
+				[],
+				function(tx, resultSet) {
+					callback();
+				},
+				function(tx, error) {
+					Mojo.Log.error("Can't create participation index", error);
+					throw error;
+				});
+		},
+		DBUtil.logFailure);
+}
