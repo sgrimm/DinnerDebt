@@ -33,8 +33,8 @@ var Participation = Class.create({
 		}
 		this.person = person;
 		this.ddEvent = ddEvent;
-		this.isSharing = isSharing ? isSharing : false;
-		this.shareIsFixed = shareIsFixed ? shareIsFixed : false;
+		this.isSharing = isSharing ? true : false;
+		this.shareIsFixed = shareIsFixed ? true : false;
 		this.additionalAmount = additionalAmount ? additionalAmount : 0;
 		this.total = total ? total : 0;
 	},
@@ -73,8 +73,10 @@ var Participation = Class.create({
 					') VALUES (' +
 						'?,?,?,?,?,?' +
 					')',
-				[this.person.id, this.ddEvent.id, this.isSharing,
-				 this.shareIsFixed, this.additionalAmount, this.total],
+				[this.person.id, this.ddEvent.id,
+				 this.isSharing ? 1 : 0,
+				 this.shareIsFixed ? 1 : 0,
+				 this.additionalAmount, this.total],
 				function(tx, result) {
 					this.id = result.insertID;
 					if (onSuccess) {

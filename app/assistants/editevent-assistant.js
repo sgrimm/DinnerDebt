@@ -122,14 +122,13 @@ var EditeventAssistant = Class.create({
 						id: id,
 						name: entry.name,
 					};
+					this.participationToModel(id);
 					updatedList.push(this.participationModels[id]);
 					this.listPositions[id] = offset + i;
 
 					this.controller.setupWidget('shareCheckbox' + id, {
 						modelProperty: 'isSharing'
 					}, this.participationModels[id]);
-
-					this.participationToModel(id);
 				}
 
 				listWidget.mojo.noticeUpdatedItems(offset, updatedList.slice(offset, offset+count));
@@ -399,18 +398,17 @@ var EditeventAssistant = Class.create({
 	modelToParticipation : function(id) {
 		var model = this.participationModels[id];
 		var ddEvent = this.ddEvent;
-		ddEvent.getParticipationForUser(id, function(participation) {
-			participation.isSharing = model.isSharing;
-			participation.shareIsFixed = model.shareIsFixed;
+		var participation = ddEvent.getParticipationForUser(id);
+		participation.isSharing = model.isSharing;
+		participation.shareIsFixed = model.shareIsFixed;
 
-			var addl = parseFloat(model.additionalAmount);
-			if (isNaN(addl)) {
-				addl = 0;
-			}
-			participation.additionalAmount = Math.floor(addl * 100);
+		var addl = parseFloat(model.additionalAmount);
+		if (isNaN(addl)) {
+			addl = 0;
+		}
+		participation.additionalAmount = Math.floor(addl * 100);
 
-			ddEvent.setParticipation(participation);
-		});
+		ddEvent.setParticipation(participation);
 	},
 
 	/**
@@ -420,24 +418,21 @@ var EditeventAssistant = Class.create({
 	 */
 	participationToModel : function(id) {
 		var model = this.participationModels[id];
-		this.ddEvent.getParticipationForUser(id, function(participation) {
-			model.isSharing = participation.isSharing;
-			model.shareIsFixed = participation.shareIsFixed;
-			model.additionalAmount = this.formatDecimal(participation.additionalAmount);
-			model.isPayer = (this.ddEvent.getPayerId() == id);
-			model.id = participation.person.id;
+		var participation = this.ddEvent.getParticipationForUser(id);
+		model.isSharing = participation.isSharing;
+		model.shareIsFixed = participation.shareIsFixed;
+		model.additionalAmount = this.formatDecimal(participation.additionalAmount);
+		model.isPayer = (this.ddEvent.getPayerId() == id);
+		model.id = participation.person.id;
 
-			var newTotal = this.formatTotal(participation.total);
-			if (model.total != newTotal) {
-				model.total = newTotal;
-				var element = this.controller.get('total' + id);
-				if (element) {
-					element.innerHTML = newTotal;
-				}
+		var newTotal = this.formatTotal(participation.total);
+		if (model.total != newTotal) {
+			model.total = newTotal;
+			var element = this.controller.get('total' + id);
+			if (element) {
+				element.innerHTML = newTotal;
 			}
-
-			this.controller.modelChanged(model);
-		}.bind(this));
+		}
 	},
 
 	/**

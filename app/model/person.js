@@ -201,7 +201,7 @@ Person.getUnusedId = function() {
 		}
 	}
 
-	return 1 + maxId;	// maxId may be a string, so this forces a cast
+	return 1 + (maxId * 2) / 2;	// maxId may be a string, so this forces a cast
 }
 
 /**
@@ -215,7 +215,7 @@ Person.getNextPosition = function() {
 		}
 	}
 
-	return maxPos + 1;
+	return 1 + (maxPos * 2) / 2;
 }
 
 /**
