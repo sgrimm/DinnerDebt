@@ -269,15 +269,84 @@ var DDEvent = Class.create({
 			part.setTotal(part.getTotal() + share);
 		}
 	},
-	
+
+	/**
+	 * Inserts this event into the event list in the appropriate position
+	 * based on its date.
+	 */
+	insertIntoList: function() {
+		// Inserting at end of list is vastly more common than inserting
+		// into the middle somewhere.
+		if (DDEvent.list.length == 0) {
+			DDEvent.list.push(this);
+		} else {
+			var myDate = this.date.getTime();
+			var i = DDEvent.list.length - 1;
+			while (i > -1) {
+				var e = DDEvent.list[i];
+				var hisDate = e.date.getTime();
+				if (e.id == this.id) {
+					return;
+				}
+				if (hisDate < myDate || hisDate == myDate && e.id < this.id) {
+					break;
+				}
+
+				i--;
+			}
+			Mojo.Log.info("insert at pos:",i+1,this.id,this.date.toString());
+			DDEvent.list.splice(i + 1, 0, this);
+		}
+	},
+
+	/**
+	 * Removes this event from the event list.
+	 */
+	removeFromList: function() {
+		if (this.id == 0) {
+			return;
+		}
+
+		// List is sorted by date, so we can binary-search for ourselves.
+		var min = 0, max = DDEvent.list.length - 1;
+		var myDate = this.date.getTime();
+		for (var i = 0 ; i < DDEvent.list.length; i++) { Mojo.Log.info(i, 'id',DDEvent.list[i].id, DDEvent.list[i].date.toString()); }
+		Mojo.Log.info('looking for',this.id);
+		while (min <= max) {
+			var pos = Math.floor((min + max) / 2);
+			var e = DDEvent.list[pos];
+			Mojo.Log.info('min',min,'max',max,'pos',pos,'id',e.id);
+			if (e.id == this.id) {
+				DDEvent.list.splice(pos, 1);
+				return;
+			}
+
+			var hisDate = e.date.getTime();
+			if (hisDate < myDate) {
+				min = pos + 1;
+			} else if (hisDate > myDate) {
+				max = pos - 1;
+			} else if (e.id < this.id) {
+				min = pos + 1;
+			} else {
+				max = pos - 1;
+			}
+		}
+
+		Mojo.Log.error("Can't remove event id", this.id, "from list");
+	},
+
 	/**
 	 * Saves this event to the database.
 	 */
 	save : function() {
-		if (this.id == 0) {
+		if (this.id != 0) {
+			this.removeFromList();
+		} else {
 			this.id = DDEvent.getUnusedId();
-			DDEvent.list.push(this);
 		}
+		this.insertIntoList();
+
 		// else we were editing the existing list item in place anyway
 
 		db.transaction(function(tx) {
@@ -333,14 +402,15 @@ DDEvent.getList = function(onSuccess) {
 					db.transaction(function(tx) {
 						for (var i = 0; i < list.length; i++) {
 							var e = list[i];
-							DDEvent.list.push(
-								new DDEvent(e.id, e.description,
-											  e.subtotal, e.tipPercent, e.total,
-											  new Date(e.date),
-											  null,
-											  Person.get(e.payerId)));
+							new DDEvent(e.id, e.description,
+										  e.subtotal, e.tipPercent, e.total,
+										  new Date(e.date),
+										  null,
+										  Person.get(e.payerId))
+									.insertIntoList();
 
 							// Migrate participations list from legacy records
+							// XXX - remove this at some point
 							if (e.participations) {
 								e.participations.each(function(sp) {
 									Participation.complexify(sp).save(tx);
@@ -418,7 +488,7 @@ DDEvent.sortList = function() {
  * XXX - should build an index of events so we don't have to linear-search
  */
 DDEvent.getRaw = function(id) {
-	for (var i = 0; i < DDEvent.list.length; i++) {
+	for (var i = DDEvent.list.length - 1; i >= 0; i--) {
 		if (DDEvent.list[i].id == id) {
 			return DDEvent.list[i];
 		}
