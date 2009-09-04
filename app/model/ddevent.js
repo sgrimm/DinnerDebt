@@ -307,29 +307,13 @@ var DDEvent = Class.create({
 			return;
 		}
 
-		// List is sorted by date, so we can binary-search for ourselves.
-		var min = 0, max = DDEvent.list.length - 1;
-		var myDate = this.date.getTime();
-		for (var i = 0 ; i < DDEvent.list.length; i++) { Mojo.Log.info(i, 'id',DDEvent.list[i].id, DDEvent.list[i].date.toString()); }
-		Mojo.Log.info('looking for',this.id);
-		while (min <= max) {
-			var pos = Math.floor((min + max) / 2);
-			var e = DDEvent.list[pos];
-			Mojo.Log.info('min',min,'max',max,'pos',pos,'id',e.id);
-			if (e.id == this.id) {
-				DDEvent.list.splice(pos, 1);
+		// Not elegant, but we're unlikely to be removing tons of historical
+		// events, so in the common case this will tend to be as fast as or
+		// faster than binary searching.
+		for (var i = DDEvent.list.length - 1; i >= 0; i--) {
+			if (DDEvent.list[i].id == this.id) {
+				DDEvent.list.splice(i, 1);
 				return;
-			}
-
-			var hisDate = e.date.getTime();
-			if (hisDate < myDate) {
-				min = pos + 1;
-			} else if (hisDate > myDate) {
-				max = pos - 1;
-			} else if (e.id < this.id) {
-				min = pos + 1;
-			} else {
-				max = pos - 1;
 			}
 		}
 
