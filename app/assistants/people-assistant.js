@@ -50,7 +50,10 @@ var PeopleAssistant = Class.create({
 			this.viewMenuModel);
 		this.controller.setupWidget('sort-menu', undefined, this.sortMenuModel);
 
-		this.mgr.listen('peopleList', Mojo.Event.listAdd, this.handleListAdd.bind(this));
+		this.mgr.listen('peopleList', Mojo.Event.listAdd,
+						this.handleListAdd.bind(this));
+		this.mgr.listen('peopleList', Mojo.Event.listTap,
+						this.handleListTap.bind(this));
 		this.mgr.listen('peopleList', Mojo.Event.listReorder,
 						this.handleListReorder.bind(this));
 
@@ -115,7 +118,7 @@ var PeopleAssistant = Class.create({
 	handleListAdd: function(event) {
 		this.controller.showDialog({
 			template: 'people/add-person-dialog',
-			assistant: new AddPersonDialogAssistant(this),
+			assistant: new AddEditPersonDialogAssistant(this, null),
 		});
 	},
 
@@ -133,23 +136,34 @@ var PeopleAssistant = Class.create({
 		}
 	},
 
+	/**
+	 * Handles a tap on a person's name.
+	 */
+	handleListTap: function(event) {
+		this.controller.showDialog({
+			template: 'people/add-person-dialog',
+			assistant: new AddEditPersonDialogAssistant(this, event.item),
+		});
+	},
+
 });
 
 
 /**
- * Dialog assistant for the "Add Person" dialog.
+ * Dialog assistant for the "Add/Edit Person" dialog.
  */
-var AddPersonDialogAssistant = Class.create({
-	initialize: function(sceneAssistant) {
+var AddEditPersonDialogAssistant = Class.create({
+	initialize: function(sceneAssistant, person) {
 		this.mgr = new EventManager(sceneAssistant.controller);
 		this.sceneAssistant = sceneAssistant;
-		this.nameModel = { value: '' };
+		this.person = person;
+		this.nameModel = { value: person ? person.name : '' };
 	},
 
 	setup: function(widget) {
 		var controller = this.sceneAssistant.controller;
 		this.widget = widget;
-		
+
 		controller.setupWidget('okButton', {
 			label: $L('OK'),
 		}, { buttonClass: 'affirmative' });
@@ -163,6 +177,9 @@ var AddPersonDialogAssistant = Class.create({
 		
 		this.mgr.listen('okButton', Mojo.Event.tap, this.handleOkTap.bind(this));
 		this.mgr.listen('cancelButton', Mojo.Event.tap, this.widget.mojo.close);
+
+		controller.get('add-person-title').innerHTML =
+			this.person ? $L('Edit Person') : $L('Add Person');
 	},
 
 	activate: function() {
@@ -175,8 +192,12 @@ var AddPersonDialogAssistant = Class.create({
 	
 	handleOkTap: function(event) {
 		if (this.nameModel.value) {
-			var person = new Person(0, this.nameModel.value, 0);
-			person.add();
+			if (this.person) {
+				this.person.name = this.nameModel.value;
+			} else {
+				this.person = new Person(0, this.nameModel.value, 0);
+				this.person.add();
+			}
 			Person.saveList();
 
 			// Make the list update itself
