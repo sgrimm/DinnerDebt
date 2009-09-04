@@ -271,6 +271,14 @@ var DDEvent = Class.create({
 	},
 
 	/**
+	 * Returns true if this is an "interesting" event (i.e., it's worth
+	 * saving.)
+	 */
+	isWorthSaving: function() {
+		return this.id != 0 || this.total != 0 || this.description;
+	},
+
+	/**
 	 * Inserts this event into the event list in the appropriate position
 	 * based on its date.
 	 */
@@ -294,7 +302,6 @@ var DDEvent = Class.create({
 
 				i--;
 			}
-			Mojo.Log.info("insert at pos:",i+1,this.id,this.date.toString());
 			DDEvent.list.splice(i + 1, 0, this);
 		}
 	},
@@ -360,6 +367,35 @@ var DDEvent = Class.create({
 					callback(this);
 				}.bind(this));
 		}
+	},
+
+	/**
+	 * Deletes the current event from the list, undoing all its effects on
+	 * people's balances.
+	 */
+	doDelete: function() {
+		if (this.id == 0) {
+			// Not saved yet = nothing to delete
+			return;
+		}
+
+		this.removeFromList();
+
+		db.transaction(function(tx) {
+			for (var i = 0; i < this.participations.length; i++) {
+				this.participations[i].setTotal(0);
+				this.participations[i].isSharing = false;
+				this.participations[i].save(tx);	// delete the record
+			}
+		}.bind(this));
+
+		// Mark as not worth saving (see isWorthSaving())
+		this.setTotal(0);	// this will also debit the payer
+		this.description = null;
+		this.id = 0;
+
+		DDEvent.saveList();
+		Person.saveList();
 	},
 
 });

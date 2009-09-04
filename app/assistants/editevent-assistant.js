@@ -10,6 +10,15 @@ var EditeventAssistant = Class.create({
 
 		this.priceModel = {};
 		this.listPositions = {};
+		this.appMenuModel = {
+			items: [
+				{ label: $L('About DinnerDebt...'), command: 'about' },
+				{ label: $L('Delete Event'), command: 'deleteEvent' },
+				{ label: $L('Help'), command: 'help.editEvent' },
+			]
+		};
+
+		this.doDeleteEvent = this.doDeleteEvent.bind(this);
 	},
 
 	setup : function() {
@@ -71,6 +80,10 @@ var EditeventAssistant = Class.create({
 				},
 				onItemRendered: this.itemRenderedCallback.bind(this),
 			});
+
+			this.controller.setupWidget(Mojo.Menu.appMenu,
+										{ omitDefaultItems: true },
+										this.appMenuModel);
 
 			this.populatePriceModel(this.ddEvent, this.priceModel, true);
 			this.updateTipAmount();
@@ -199,7 +212,7 @@ var EditeventAssistant = Class.create({
 	 * a result of being popped off the scene stack.
 	 */
 	cleanup : function(event) {
-		if (this.ddEvent.getTotal() > 0 || this.ddEvent.description != '') {
+		if (this.ddEvent.isWorthSaving()) {
 			this.ddEvent.save();
 		}
 	},
@@ -443,5 +456,71 @@ var EditeventAssistant = Class.create({
 		for (var id in this.participationModels) {
 			this.participationToModel(id);
 		}
+	},
+
+	handleCommand: function(event) {
+		if (event.type === Mojo.Event.command) {
+			switch (event.command) {
+			case 'help.editEvent':
+				this.controller.stageController.pushScene('help', 'editEvent');
+				break;
+
+			case 'deleteEvent':
+				this.controller.showDialog({
+					template: 'editevent/delete-event-dialog',
+					assistant: new ConfirmDeleteEventAssistant(this),
+				});
+				break;
+			}
+		}
+	},
+
+	/**
+	 * Deletes the event. This is a callback from the confirmation dialog.
+	 */
+	doDeleteEvent: function() {
+		this.ddEvent.doDelete();
+		this.controller.stageController.popScene();
+	},
+
+});
+
+
+/**
+ * Assistant for the "do you really want to delete this event?" dialog.
+ */
+var ConfirmDeleteEventAssistant = Class.create({
+	initialize: function(sceneAssistant) {
+		this.mgr = new EventManager(sceneAssistant.controller);
+		this.sceneAssistant = sceneAssistant;
+	},
+
+	setup: function(widget) {
+		var controller = this.sceneAssistant.controller;
+		this.widget = widget;
+		
+		controller.setupWidget('okButton', {
+			label: $L('OK'),
+		}, { buttonClass: 'affirmative' });
+		controller.setupWidget('cancelButton', {
+			type: Mojo.Widget.defaultButton,
+			label: $L('Cancel'),
+		}, { buttonClass: 'negative' });
+
+		this.mgr.listen('okButton', Mojo.Event.tap, this.handleOkTap.bind(this));
+		this.mgr.listen('cancelButton', Mojo.Event.tap, this.widget.mojo.close);
+	},
+
+	activate: function() {
+		this.mgr.activateHandlers();
+	},
+
+	deactivate: function() {
+		this.mgr.deactivateHandlers();
+	},
+	
+	handleOkTap: function(event) {
+		this.widget.mojo.close();
+		this.sceneAssistant.doDeleteEvent();
 	},
 });
