@@ -33,15 +33,12 @@ var PeopleAssistant = Class.create({
 				]
 			}]
 		};
-	
+
 		this.sortMenuModel = {
 			label: $L('Sort By'),
-			items: [
-				{ label: $L('Name'), command: 'name' },
-				{ label: $L('Balance'), command: 'balance' },
-				{ label: $L('Manual'), command: 'manual' }
-			]};
-	
+			items: this.getSortMenuItems(),
+		};
+
 		this.controller.setupWidget(Mojo.Menu.viewMenu,
 			{
 				spacerHeight: 0,
@@ -65,6 +62,25 @@ var PeopleAssistant = Class.create({
 			function(list) {
 				listWidget.mojo.noticeUpdatedItems(offset, list.slice(offset, offset+count));
 			});
+	},
+
+	getSortMenuItems: function() {
+		var sortOrder = this.stageAssistant.personSortOrder;
+		return [
+				{
+					label: $L('Name'),
+					command: 'name',
+					chosen: sortOrder == Person.SORT_NAME
+				},{
+					label: $L('Balance'),
+					command: 'balance',
+					chosen: sortOrder == Person.SORT_BALANCE
+				},{
+					label: $L('Manual'),
+					command: 'manual',
+					chosen: sortOrder == Person.SORT_MANUAL
+				}
+			];
 	},
 
 	formatBalance: function(val, obj) {
@@ -95,12 +111,15 @@ var PeopleAssistant = Class.create({
 			switch (event.command) {
 				case 'name':
 					this.stageAssistant.setPersonSortOrder(Person.SORT_NAME);
+					this.sortMenuModel.items = this.getSortMenuItems();
 					break;
 				case 'balance':
 					this.stageAssistant.setPersonSortOrder(Person.SORT_BALANCE);
+					this.sortMenuModel.items = this.getSortMenuItems();
 					break;
 				case 'manual':
 					this.stageAssistant.setPersonSortOrder(Person.SORT_MANUAL);
+					this.sortMenuModel.items = this.getSortMenuItems();
 					break;
 
 				case 'events':
