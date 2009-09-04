@@ -71,8 +71,6 @@ var EditeventAssistant = Class.create({
 		
 			this.controller.setupWidget('peopleList', {
 				itemTemplate: "editevent/person-listitem",
-				swipeToDelete: true,
-				reorderable: true,
 				itemsCallback: this.itemsCallback.bind(this),
 				formatters: {
 					name: this.formatName.bind(this),
