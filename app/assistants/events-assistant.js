@@ -16,6 +16,7 @@ var EventsAssistant = Class.create({
 					date : this.formatDate.bind(this)
 				},
 				addItemLabel : $L('Add Event'),
+				swipeToDelete: true,
 			});
 
 		this.controller.setupWidget(Mojo.Menu.viewMenu, {}, {
@@ -33,6 +34,7 @@ var EventsAssistant = Class.create({
 		this.eventsList = this.controller.get('eventsList');
 		this.mgr.listen('eventsList', Mojo.Event.listTap, this.handleEventTap.bind(this));
 		this.mgr.listen('eventsList', Mojo.Event.listAdd, this.handleAddTap.bind(this));
+		this.mgr.listen('eventsList', Mojo.Event.listDelete, this.handleDelete.bind(this));
 	},
 
 	itemsCallback: function(listWidget, offset, count) {
@@ -115,6 +117,13 @@ var EventsAssistant = Class.create({
 			this.controller.stageController.pushScene('editevent', ddEvent,
 													this.stageAssistant);
 		}.bind(this));
+	},
+
+	/**
+	 * Handles a deletion from the event list.
+	 */
+	handleDelete: function(event) {
+		event.item.load(function() { event.item.doDelete(); });
 	},
 
 });
