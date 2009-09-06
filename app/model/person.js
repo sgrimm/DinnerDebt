@@ -2,11 +2,12 @@
  * A single person's private data.
  */
 var Person = Class.create({
-	initialize : function(id, name, balance, position) {
+	initialize : function(id, name, balance, position, visible) {
 		this.id = id;
 		this.name = name;
 		this.balance = balance;
 		this.position = position;
+		this.visible = visible ? true : false;
 	},
 
 	/** A unique identifier for the person. */
@@ -27,6 +28,9 @@ var Person = Class.create({
 
 	/** Position in the manually-sorted list. */
 	position : 0,
+
+	/** Is this person visible in the list? */
+	visible: false,
 
 	/**
 	 * Adds credit to a person's balance.
@@ -61,6 +65,25 @@ var Person = Class.create({
 		}
 		// else we were already on the list
 	},
+
+	/**
+	 * Saves this person to the database.
+	 */
+	save: function(onSuccess, onFailure, tx) {
+		if (! tx) {
+			return db.transaction(this.save.bind(this, onSuccess, onFailure));
+		}
+
+		tx.executeSql(
+			'INSERT OR REPLACE' +
+				' INTO person (id, name, balance, position, visible)' +
+				' VALUES (?,?,?,?,?)',
+			[this.id, this.name, this.balance, this.position,
+			 this.visible ? 1 : 0],
+			onSuccess,
+			onFailure);
+	},
+
 });
 
 /**
@@ -148,6 +171,37 @@ Person.getList = function(sortStyle, onSuccess) {
 		return;
 	}
 
+	db.transaction(function(tx) {
+		tx.executeSql(
+			'SELECT id, name, balance, position, visible' +
+				' FROM person',
+			[],
+			function(tx, result) {
+				if (result.rows.length == 0) {
+					Person.getListFromDepot(sortStyle, function(list) {
+						Person.saveList();
+						return onSuccess(list);
+					});
+				}
+
+				Person.list = {};
+				for (var i = 0; i < result.rows.length; i++) {
+					var row = result.rows.item(i);
+					Person.list[row.id] = new Person(row.id, row.name,
+													row.balance, row.position,
+													row.visible);
+				}
+				var list = Person._sortList(sortStyle);
+				onSuccess(list);
+			},
+			DBUtil.logFailure);
+	});
+}
+
+/**
+ * Migrates the list of people from the old depot format.
+ */
+Person.getListFromDepot = function(sortStyle, onSuccess) {
 	depot.get("people",
 			function(list) {
 				Person.list = {};
@@ -157,7 +211,8 @@ Person.getList = function(sortStyle, onSuccess) {
 					for (var id in list) {
 						var entry = list[id];
 						Person.list[id] = new Person(id, entry.name,
-												entry.balance, entry.position);
+												entry.balance, entry.position,
+												true);
 						Person.visibleCount++;
 					}
 				}
@@ -170,11 +225,22 @@ Person.getList = function(sortStyle, onSuccess) {
  * Saves the list of people to the database.
  */
 Person.saveList = function() {
-	// Person objects will be saved as dumb JSON objects and will
-	// be reconstituted into proper objects at load time.
-	depot.add("people", Person.list,
-			function() {},
-			function(error) { throw "Can't save people, code " + error; });
+	db.transaction(function(tx) {
+		try {
+			for (var id in Person.list) {
+				var person = Person.list[id];
+				person.save(
+					function() {
+						// success, no action required
+					},
+					DBUtil.logFailure,
+					tx);
+			}
+		}
+		catch (e) {
+			Mojo.Log.error(e);
+		}
+	});
 }
 
 /**
@@ -239,4 +305,22 @@ Person.reposition = function(fromIndex, toIndex) {
  */
 Person.getCount = function(onSuccess) {
 	onSuccess(Person.visibleCount);
+}
+
+/**
+ * Creates the SQLite table that holds people.
+ */
+Person.setupDB = function(tx, onSuccess) {
+	tx.executeSql(
+		'CREATE TABLE IF NOT EXISTS person (' +
+			' id INTEGER,' +
+			' name TEXT,' +
+			' balance INTEGER,' +
+			' position INTEGER,' +
+			' visible INTEGER,' +
+			' PRIMARY KEY (id)' +
+		')',
+		[],
+		onSuccess,
+		DBUtil.logFailure);
 }

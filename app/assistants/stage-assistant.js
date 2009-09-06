@@ -65,9 +65,10 @@ var StageAssistant = Class.create({
 		// Create all the tables if they don't exist.
 		db.transaction(function(transaction) {
 			Participation.setupDB(transaction, function() {
-				// Do more DB setup here...
-
-				callback();
+				Person.setupDB(transaction, function() {
+					// Do more DB setup here...
+					callback();
+				});
 			});
 		});
 	},
