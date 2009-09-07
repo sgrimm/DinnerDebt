@@ -177,13 +177,6 @@ Person.getList = function(sortStyle, onSuccess) {
 				' FROM person',
 			[],
 			function(tx, result) {
-				if (result.rows.length == 0) {
-					Person.getListFromDepot(sortStyle, function(list) {
-						Person.saveList();
-						return onSuccess(list);
-					});
-				}
-
 				Person.list = {};
 				for (var i = 0; i < result.rows.length; i++) {
 					var row = result.rows.item(i);
@@ -199,33 +192,39 @@ Person.getList = function(sortStyle, onSuccess) {
 }
 
 /**
- * Migrates the list of people from the old depot format.
+ * Migrates the list of people from the old depot format. Called by
+ * DBUtil.updateSchema().
  */
-Person.getListFromDepot = function(sortStyle, onSuccess) {
+Person.migrateFromDepot = function(tx, onSuccess, onFailure) {
 	depot.get("people",
 			function(list) {
 				Person.list = {};
-				if (list == null) {
-					Mojo.Log.info("People list not found, creating");
-				} else {
+				if (list != null) {
 					for (var id in list) {
 						var entry = list[id];
 						Person.list[id] = new Person(id, entry.name,
 												entry.balance, entry.position,
 												true);
-						Person.visibleCount++;
 					}
+
+					Person.saveList(tx);
 				}
-				Person.getList(sortStyle, onSuccess);
+
+				onSuccess();
 			},
-			function(error) { throw "Can't load people, code " + error; });
+			function(error) {
+				onFailure("Can't load people, code " + error);
+			}
+		);
 }
 
 /**
  * Saves the list of people to the database.
  */
-Person.saveList = function() {
-	db.transaction(function(tx) {
+Person.saveList = function(tx) {
+	if (! tx) {
+		db.transaction(Person.saveList);
+	} else {
 		try {
 			for (var id in Person.list) {
 				var person = Person.list[id];
@@ -240,7 +239,7 @@ Person.saveList = function() {
 		catch (e) {
 			Mojo.Log.error(e);
 		}
-	});
+	}
 }
 
 /**
@@ -305,22 +304,4 @@ Person.reposition = function(fromIndex, toIndex) {
  */
 Person.getCount = function(onSuccess) {
 	onSuccess(Person.visibleCount);
-}
-
-/**
- * Creates the SQLite table that holds people.
- */
-Person.setupDB = function(tx, onSuccess) {
-	tx.executeSql(
-		'CREATE TABLE IF NOT EXISTS person (' +
-			' id INTEGER,' +
-			' name TEXT,' +
-			' balance INTEGER,' +
-			' position INTEGER,' +
-			' visible INTEGER,' +
-			' PRIMARY KEY (id)' +
-		')',
-		[],
-		onSuccess,
-		DBUtil.logFailure);
 }
