@@ -59,60 +59,60 @@ var StageAssistant = Class.create({
 		);
 	},
 
-	/**
-	 * Schema setup. DO NOT DELETE ENTRIES FROM THIS as the DB utility
-	 * code stores the most recently played array index in a DB table.
-	 */
-	dbOperations: [
-
-		'CREATE TABLE IF NOT EXISTS participation (' +
-			'personId INTEGER NOT NULL,' +
-			'eventId INTEGER NOT NULL,' +
-			'isSharing INTEGER NOT NULL,' +
-			'shareIsFixed INTEGER NOT NULL,' +
-			'additionalAmount INTEGER NOT NULL,' +
-			'total INTEGER NOT NULL,' +
-			'PRIMARY KEY (eventId, personId)' +
-		')',
-
-		'CREATE INDEX IF NOT EXISTS participation_i_event' +
-			' ON participation (personId)',
-
-		'CREATE TABLE IF NOT EXISTS person (' +
-			' id INTEGER,' +
-			' name TEXT,' +
-			' balance INTEGER,' +
-			' position INTEGER,' +
-			' visible INTEGER,' +
-			' PRIMARY KEY (id)' +
-		')',
-
-		Person.migrateFromDepot,
-
-		'CREATE TABLE IF NOT EXISTS ddevent (' +
-			' id INT,' +
-			' description TEXT,' +
-			' subtotal INT,' +
-			' tip_percent REAL,' +
-			' total INT,' +
-			' date NUMERIC,' +
-			' payer_id REFERENCES person (id),' +
-			' PRIMARY KEY (id)' +
-		')',
-
-		// For efficient sorting by date
-		'CREATE INDEX IF NOT EXISTS ddevent_i_date' +
-			' ON ddevent (date)',
-
-		DDEvent.migrateFromDepot,
-
-	],
-
 	openDB: function(callback) {
+		/**
+		 * Schema setup. DO NOT DELETE ENTRIES FROM THIS as the DB utility
+		 * code stores the most recently played array index in a DB table.
+		 */
+		var operations = [
+
+			'CREATE TABLE IF NOT EXISTS participation (' +
+				'personId INTEGER NOT NULL,' +
+				'eventId INTEGER NOT NULL,' +
+				'isSharing INTEGER NOT NULL,' +
+				'shareIsFixed INTEGER NOT NULL,' +
+				'additionalAmount INTEGER NOT NULL,' +
+				'total INTEGER NOT NULL,' +
+				'PRIMARY KEY (eventId, personId)' +
+			')',
+
+			'CREATE INDEX IF NOT EXISTS participation_i_event' +
+				' ON participation (personId)',
+
+			'CREATE TABLE IF NOT EXISTS person (' +
+				' id INTEGER,' +
+				' name TEXT,' +
+				' balance INTEGER,' +
+				' position INTEGER,' +
+				' visible INTEGER,' +
+				' PRIMARY KEY (id)' +
+			')',
+
+			Person.migrateFromDepot,
+
+			'CREATE TABLE IF NOT EXISTS ddevent (' +
+				' id INT,' +
+				' description TEXT,' +
+				' subtotal INT,' +
+				' tip_percent REAL,' +
+				' total INT,' +
+				' date NUMERIC,' +
+				' payer_id REFERENCES person (id),' +
+				' PRIMARY KEY (id)' +
+			')',
+
+			// For efficient sorting by date
+			'CREATE INDEX IF NOT EXISTS ddevent_i_date' +
+				' ON ddevent (date)',
+
+			DDEvent.migrateFromDepot,
+
+		];
+
 		db = openDatabase("ext:dinnerdebt", 1, "DinnerDebt", 100000);
 
 		// Create all the tables if they don't exist.
-		DBUtil.updateSchema(db, this.dbOperations, callback,
+		DBUtil.updateSchema(db, operations, callback,
 			function(errorMessage) {
 				Mojo.Log.error("Schema update failed:", errorMessage);
 				// Don't call the success callback

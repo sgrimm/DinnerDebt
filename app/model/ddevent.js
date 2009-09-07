@@ -515,3 +515,11 @@ DDEvent.getRaw = function(id) {
 	}
 	return null;
 }
+
+/**
+ * Migrates event records from the old depot format. Called by
+ * DBUtil.updateSchema().
+ */
+DDEvent.migrateFromDepot = function(tx, onSuccess, onFailure) {
+	// let's test timeouts!
+}

@@ -108,6 +108,8 @@ DBUtil.updateSchema = function(db, operations, onSuccess, onFailure) {
 						"Can't determine current schema revision: " +
 						error.message);
 				}
+
+				return false;	// no need to roll back
 			}
 		);
 	});
@@ -133,27 +135,29 @@ DBUtil.updateSchema.advance = function(db, ops, nextRev, onSuccess, onFailure) {
 		Mojo.Log.info("Trying to advance schema to revision", nextRev);
 	}
 
-	var updateRevision = function() {
+	// Called after a successful operation.
+	var updateRevision = function(tx) {
 		if (DBUtil.updateSchema.verbose) {
 			Mojo.Log.info("Updating schema version to", nextRev + 1);
 		}
 
-		db.transaction(function(tx) {
-			tx.executeSql(
-				'UPDATE schema_info SET revision = ?',
-				[nextRev],
-				function(tx, result) {
-					// Move on to the next revision, if any.
-					DBUtil.updateSchema.advance.defer(db, ops, nextRev + 1,
-												onSuccess, onFailure);
-				},
-				function(tx, error) {
-					onFailure.defer("Couldn't update schema revision number " +
-									"after successful update: " +
-									error.message);
-				}
-			);
-		});
+		tx.executeSql(
+			'UPDATE schema_info SET revision = ?',
+			[nextRev + 1],
+			function(tx, result) {
+				// Move on to the next revision, if any. Need to use
+				// defer() here so that the current transaction gets
+				// committed first.
+				DBUtil.updateSchema.advance.defer(db, ops, nextRev + 1,
+											onSuccess, onFailure);
+			},
+			function(tx, error) {
+				onFailure.defer("Couldn't update schema revision number " +
+								"after successful update: " +
+								error.message);
+				return true;	// rollback
+			}
+		);
 	};
 
 	db.transaction(function(tx) {
@@ -161,12 +165,12 @@ DBUtil.updateSchema.advance = function(db, ops, nextRev, onSuccess, onFailure) {
 		if (typeof(operation) == 'string') {
 			tx.executeSql(operation, [],
 				function(tx, result) {
-					updateRevision.defer(db, ops, nextRev,
-										onSuccess, onFailure);
+					updateRevision(tx);
 				},
 				function(tx, error) {
 					onFailure.defer("Can't execute schema update statement #" +
 							nextRev + ": " + error.message);
+					return true;	// rollback
 				}
 			);
 		} else {
@@ -184,19 +188,20 @@ DBUtil.updateSchema.advance = function(db, ops, nextRev, onSuccess, onFailure) {
 				operation(tx,
 					function() {
 						clearTimeout(timeoutHandle);
-						updateRevision.defer(db, ops, nextRev,
-											onSuccess, onFailure);
+						updateRevision(tx);
 					},
 					function() {
 						clearTimeout(timeoutHandle);
 						onFailure.defer("Schema update function #" +
 								nextRev + " failed");
+						return true;	// rollback
 					}
 				);
 			}
 			catch (e) {
 				onFailure.defer("Schema update function threw exception: " +
 					(typeof(e) == 'string' ? e : e.toString()));
+				return true;	// rollback
 			}
 		}
 	});
