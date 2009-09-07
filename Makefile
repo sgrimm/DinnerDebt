@@ -13,7 +13,7 @@ default: run
 package:
 	$(package) .
 
-install: package
+install: appinfo-normal package
 	#$(launch) -c $(app_id)
 	$(install) -d tcp $(app_id)*.ipk
 
@@ -27,3 +27,13 @@ reinstall:
 phone: package
 	$(install) -d usb $(app_id)*.ipk
 	$(launch) -d usb $(app_id)
+
+test: appinfo-test package
+	$(install) -d tcp $(app_id)*.ipk
+	$(launch) -d tcp -i $(app_id)
+
+appinfo-normal:
+	cp appinfo.json.in appinfo.json
+
+appinfo-test:
+	sed 's/index.html/test.html/' < appinfo.json.in > appinfo.json
