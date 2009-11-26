@@ -193,27 +193,34 @@ Person.getList = function(sortStyle, onSuccess) {
 
 /**
  * Migrates the list of people from the old depot format. Called by
- * DBUtil.updateSchema().
+ * DBUtil.updateSchema(). Note that this uses data from a prologue
+ * function which is called outside transaction context.
  */
 Person.migrateFromDepot = function(tx, onSuccess, onFailure) {
+	var list = Person.migrateFromDepot.list;
+
+	Person.list = {};
+	if (list != null) {
+		for (var id in list) {
+			var entry = list[id];
+			Person.list[id] = new Person(id, entry.name,
+									entry.balance, entry.position,
+									true);
+		}
+	}
+
+	Person.saveList(tx, onSuccess);
+}
+
+Person.migrateFromDepot.prepare = function(onSuccess, onFailure) {
 	depot.get("people",
 			function(list) {
-				Person.list = {};
-				if (list != null) {
-					for (var id in list) {
-						var entry = list[id];
-						Person.list[id] = new Person(id, entry.name,
-												entry.balance, entry.position,
-												true);
-					}
-
-					Person.saveList(tx);
-				}
-
+				Person.migrateFromDepot.list = list;
 				onSuccess();
 			},
 			function(error) {
-				onFailure("Can't load people, code " + error);
+				Mojo.Log.error("Can't load people from depot, code", error);
+				onFailure();
 			}
 		);
 }
@@ -221,20 +228,27 @@ Person.migrateFromDepot = function(tx, onSuccess, onFailure) {
 /**
  * Saves the list of people to the database.
  */
-Person.saveList = function(tx) {
+Person.saveList = function(tx, onSuccess) {
 	if (! tx) {
-		db.transaction(Person.saveList);
+		db.transaction(function(tx) { Person.saveList(tx, onSuccess) });
 	} else {
 		try {
+			var peopleToSave = [];
 			for (var id in Person.list) {
-				var person = Person.list[id];
-				person.save(
-					function() {
-						// success, no action required
-					},
-					DBUtil.logFailure,
-					tx);
+				peopleToSave.push(Person.list[id]);
 			}
+
+			var savePersonFromList = function(num) {
+				if (num < peopleToSave.length) {
+					peopleToSave[num].save(savePersonFromList.curry(num + 1),
+											DBUtil.logFailure,
+											tx);
+				} else {
+					onSuccess();
+				}
+			};
+
+			savePersonFromList(0);
 		}
 		catch (e) {
 			Mojo.Log.error(e);

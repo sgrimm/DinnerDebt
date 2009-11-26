@@ -521,5 +521,41 @@ DDEvent.getRaw = function(id) {
  * DBUtil.updateSchema().
  */
 DDEvent.migrateFromDepot = function(tx, onSuccess, onFailure) {
-	// let's test timeouts!
+	var list = DDEvent.migrateFromDepot.list;
+	if (list != null) {
+		DBUtil.foreach(list,
+			function(e, tx, feSuccess, feFailure) {
+				Mojo.Log.info("Migrate event", e.description);
+				tx.executeSql(
+					'INSERT INTO ddevent' +
+						' (id, description, subtotal, tip_percent,'+
+						'  total, date, payer_id)' +
+						' VALUES (?,?,?,?,?,?,?)',
+					[e.id, e.description, e.subtotal, e.tipPercent,
+					 e.total, Math.floor(e.date / 1000), e.payerId],
+					feSuccess,	// next array element...
+					function(tx, error) {
+						feFailure("Can't insert event: " +
+									error.message);
+						return true;	// roll back
+					}
+				);
+			},
+			onSuccess,
+			onFailure);
+	} else {
+		onSuccess();
+	}
+}
+
+DDEvent.migrateFromDepot.prepare = function(onSuccess, onFailure) {
+	depot.get("ddevents",
+			function(list) {
+				DDEvent.migrateFromDepot.list = list;
+				onSuccess();
+			},
+			function(error) {
+				Mojo.Log.error("Can't load events, code " + error);
+				onFailure();
+			});
 }

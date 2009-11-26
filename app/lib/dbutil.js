@@ -141,70 +141,97 @@ DBUtil.updateSchema.advance = function(db, ops, nextRev, onSuccess, onFailure) {
 			Mojo.Log.info("Updating schema version to", nextRev + 1);
 		}
 
-		tx.executeSql(
-			'UPDATE schema_info SET revision = ?',
-			[nextRev + 1],
-			function(tx, result) {
-				// Move on to the next revision, if any. Need to use
-				// defer() here so that the current transaction gets
-				// committed first.
-				DBUtil.updateSchema.advance.defer(db, ops, nextRev + 1,
-											onSuccess, onFailure);
-			},
-			function(tx, error) {
-				onFailure.defer("Couldn't update schema revision number " +
-								"after successful update: " +
-								error.message);
-				return true;	// rollback
-			}
-		);
-	};
-
-	db.transaction(function(tx) {
-		var operation = ops[nextRev];
-		if (typeof(operation) == 'string') {
-			tx.executeSql(operation, [],
+		try {
+			tx.executeSql(
+				'UPDATE schema_info SET revision = ?',
+				[nextRev + 1],
 				function(tx, result) {
-					updateRevision(tx);
+					// Move on to the next revision, if any. Need to use
+					// defer() here so that the current transaction gets
+					// committed first.
+					DBUtil.updateSchema.advance.defer(db, ops, nextRev + 1,
+														onSuccess, onFailure);
 				},
 				function(tx, error) {
-					onFailure.defer("Can't execute schema update statement #" +
-							nextRev + ": " + error.message);
+					onFailure.defer("Couldn't update schema revision number " +
+									"after successful update: " +
+									error.message);
 					return true;	// rollback
 				}
 			);
-		} else {
-			try {
-				// Try to detect if the callback function never calls either
-				// our success or our failure callback; treat that as a failure.
-				// 15 seconds should be plenty of time.
-				var timeoutHandle = setTimeout(
-					function() {
-						onFailure.defer("Schema update function #" +
-								nextRev + " timed out after 15 seconds");
-					}, 
-					15000);
-
-				operation(tx,
-					function() {
-						clearTimeout(timeoutHandle);
-						updateRevision(tx);
-					},
-					function() {
-						clearTimeout(timeoutHandle);
-						onFailure.defer("Schema update function #" +
-								nextRev + " failed");
-						return true;	// rollback
-					}
-				);
-			}
-			catch (e) {
-				onFailure.defer("Schema update function threw exception: " +
-					(typeof(e) == 'string' ? e : e.toString()));
-				return true;	// rollback
-			}
+		} catch (e) {
+			Mojo.Log.error('Schema version number update failed', e);
+			throw e;
 		}
-	});
+	};
+
+	var operation = ops[nextRev];
+
+	var performUpdate = function() {
+		db.transaction(function(tx) {
+			if (typeof(operation) == 'string') {
+				try {
+					tx.executeSql(operation, [],
+						function() {
+							updateRevision(tx);
+						},
+						function(tx, error) {
+							onFailure.defer("Can't execute schema update statement #" +
+									nextRev + ": " + error.message);
+							return true;	// rollback
+						}
+					);
+				} catch (e) {
+					Mojo.Log.error('Schema update failed', operation);
+					Mojo.Log.logProperties(e);
+					Mojo.Log.logProperties();
+					throw e;
+				}
+			} else {
+				try {
+					// Try to detect if the callback function never calls either
+					// our success or our failure callback; treat that as a
+					// failure. 15 seconds should be plenty of time.
+					var timeoutHandle = setTimeout(
+						function() {
+							onFailure.defer("Schema update function #" +
+									nextRev + " timed out after 15 seconds");
+						}, 
+						15000);
+
+					operation(tx,
+						function() {
+							clearTimeout(timeoutHandle);
+							updateRevision(tx);
+						},
+						function() {
+							clearTimeout(timeoutHandle);
+							onFailure.defer("Schema update function #" +
+									nextRev + " failed");
+							return true;	// rollback
+						}
+					);
+				}
+				catch (e) {
+					onFailure.defer("Schema update function threw exception: " +
+						(typeof(e) == 'string' ? e : e.toString()));
+					return true;	// rollback
+				}
+			}
+		},
+		function(err) {
+			Mojo.Log.error("Couldn't update database schema", err);
+			throw new Exception(err);
+		});
+	}
+
+	if (typeof(operation['prepare']) == 'function') {
+		// Do prep work that has to happen outside a transaction (e.g.,
+		// because it opens its own transactions.)
+		operation['prepare'](performUpdate, onFailure);
+	} else {
+		performUpdate();
+	}
 };
 
 /**
