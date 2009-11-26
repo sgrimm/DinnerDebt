@@ -211,20 +211,23 @@ var AddEditPersonDialogAssistant = Class.create({
 	
 	handleOkTap: function(event) {
 		if (this.nameModel.value) {
+			var updateList = function() {
+				// Make the list update itself
+				var mojo = this.sceneAssistant.peopleListWidget.mojo;
+				var lastItemTapped = this.lastItemTapped;
+				Person.getCount(function(length) {
+					mojo.setLengthAndInvalidate(length);
+					mojo.revealItem(lastItemTapped ? lastItemTapped : length - 1);
+				});
+			}.bind(this);
+
 			if (this.person) {
 				this.person.name = this.nameModel.value;
+				Person.saveList(null, updateList);
 			} else {
 				this.person = new Person(0, this.nameModel.value, 0);
-				this.person.add();
+				this.person.add(updateList);
 			}
-			Person.saveList();
-
-			// Make the list update itself
-			var mojo = this.sceneAssistant.peopleListWidget.mojo;
-			Person.getCount(function(length) {
-				mojo.setLengthAndInvalidate(length);
-				mojo.revealItem(this.lastItemTapped ? this.lastItemTapped : length - 1);
-			});
 		}
 
 		this.widget.mojo.close();

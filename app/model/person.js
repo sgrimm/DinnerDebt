@@ -55,13 +55,15 @@ var Person = Class.create({
 	/**
 	 * Adds this person to the person list.
 	 */
-	add : function() {
+	add : function(onSuccess) {
 		if (! this.id) {
 			this.id = Person.getUnusedId();
 			this.position = Person.getNextPosition();
 			Person.list[this.id] = this;
-			Person.saveList();
-			Person.visibleCount++;
+			Person.saveList(null, function() {
+				Person.visibleCount++;
+				onSuccess();
+			});
 		}
 		// else we were already on the list
 	},
@@ -183,6 +185,7 @@ Person.getList = function(sortStyle, onSuccess) {
 					Person.list[row.id] = new Person(row.id, row.name,
 													row.balance, row.position,
 													row.visible);
+					Person.visibleCount++;
 				}
 				var list = Person._sortList(sortStyle);
 				onSuccess(list);
@@ -244,7 +247,9 @@ Person.saveList = function(tx, onSuccess) {
 											DBUtil.logFailure,
 											tx);
 				} else {
-					onSuccess();
+					if (onSuccess) {
+						onSuccess();
+					}
 				}
 			};
 
