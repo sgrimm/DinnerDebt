@@ -1,6 +1,13 @@
 var PeopleAssistant = Class.create({
 	initialize: function(stageAssistant) {
 		this.stageAssistant = stageAssistant;
+		this.appMenuModel = {
+			items: [
+				{ label: $L('About DinnerDebt...'), command: 'about' },
+				{ label: $L('Recalculate Balances'), command: 'recalculate' },
+				{ label: $L('Help'), command: 'help.people' },
+			]
+		};
 	},
 
 	setup: function() {
@@ -46,6 +53,10 @@ var PeopleAssistant = Class.create({
 			},
 			this.viewMenuModel);
 		this.controller.setupWidget('sort-menu', undefined, this.sortMenuModel);
+
+		this.controller.setupWidget(Mojo.Menu.appMenu,
+									{ omitDefaultItems: true },
+									this.appMenuModel);
 
 		this.mgr.listen('peopleList', Mojo.Event.listAdd,
 						this.handleListAdd.bind(this));
@@ -125,6 +136,17 @@ var PeopleAssistant = Class.create({
 				case 'events':
 					this.controller.stageController.swapScene('events', this.stageAssistant);
 					return;
+
+				case 'help.people':
+					this.controller.stageController.pushScene('help', 'people');
+					break;
+
+				case 'recalculate':
+					var widget = this.peopleListWidget;
+					Person.recalculateAll(function() {
+						widget.mojo.invalidateItems(0);
+					});
+					break;
 			}
 		}
 

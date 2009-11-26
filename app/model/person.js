@@ -324,3 +324,32 @@ Person.reposition = function(fromIndex, toIndex) {
 Person.getCount = function(onSuccess) {
 	onSuccess(Person.visibleCount);
 }
+
+/**
+ * Recalculates the balances of all people by replaying events.
+ */
+Person.recalculateAll = function(onSuccess) {
+	DDEvent.getList(function(events) {
+		// Start over from scratch
+		for (var id in Person.list) {
+			Person.list[id].balance = 0;
+		}
+
+		events.each(function(e) {
+			if (e.payer) {
+				e.payer.credit(e.getTotal());
+			}
+			var parts = e.participations;
+			if (parts) {
+				parts.each(function(p) {
+					p.person.debit(p.getTotal());
+				});
+			}
+		});
+
+		(function() {
+			Person.saveList();
+			onSuccess();
+		}).defer();
+	});
+}
