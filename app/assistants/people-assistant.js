@@ -143,8 +143,12 @@ var PeopleAssistant = Class.create({
 
 				case 'recalculate':
 					var widget = this.peopleListWidget;
+					var appController = this.controller.stageController
+											.getAppController();
 					Person.recalculateAll(function() {
 						widget.mojo.invalidateItems(0);
+						appController.showBanner($L('Recalculation complete'),
+												'', 'recalc');
 					});
 					break;
 			}
