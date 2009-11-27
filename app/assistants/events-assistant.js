@@ -44,7 +44,8 @@ var EventsAssistant = Class.create({
 			DDEvent.getList(
 				function(list) {
 					listWidget.mojo.noticeUpdatedItems(offset, list.slice(offset,offset+count));
-				});
+					listWidget.mojo.revealItem(this.lastItemTapped ? this.lastItemTapped : list.length - 1);
+				}.bind(this));
 		}
 		catch (e) {
 			Mojo.Log.error("Can't populate event list", e);
@@ -75,7 +76,6 @@ var EventsAssistant = Class.create({
 		var mojo = this.eventsList.mojo;
 		DDEvent.getListLength(function(length) {
 			mojo.setLengthAndInvalidate(length);
-			mojo.revealItem(this.lastItemTapped ? this.lastItemTapped : length - 1);
 		});
 	},
 
