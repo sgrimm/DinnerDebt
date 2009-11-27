@@ -24,6 +24,10 @@ reinstall:
 	$(install) -d tcp -r $(app_id)
 	$(MAKE) install
 
+rerun:
+	$(install) -d tcp -r $(app_id)
+	$(MAKE) run
+
 phone: package
 	$(install) -d usb $(app_id)*.ipk
 	$(launch) -d usb $(app_id)
