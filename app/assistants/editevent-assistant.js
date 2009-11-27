@@ -1,12 +1,13 @@
 var EditeventAssistant = Class.create({
-	initialize : function(ddEvent, stageAssistant) {
+	initialize : function(ddEvent, stageAssistant, dismissCallback) {
 		if (ddEvent) {
 			this.ddEvent = ddEvent;
 		} else {
 			this.ddEvent = new DDEvent();
 		}
-		
+
 		this.stageAssistant = stageAssistant;
+		this.dismissCallback = dismissCallback;
 
 		this.priceModel = {};
 		this.listPositions = {};
@@ -211,7 +212,9 @@ var EditeventAssistant = Class.create({
 	 */
 	cleanup : function(event) {
 		if (this.ddEvent.isWorthKeeping()) {
-			this.ddEvent.save();
+			this.ddEvent.save(null, this.dismissCallback);
+		} else {
+			this.dismissCallback();
 		}
 	},
 
@@ -477,8 +480,9 @@ var EditeventAssistant = Class.create({
 	 * Deletes the event. This is a callback from the confirmation dialog.
 	 */
 	doDeleteEvent: function() {
-		this.ddEvent.doDelete();
-		this.controller.stageController.popScene();
+		this.ddEvent.doDelete(function() {
+			this.controller.stageController.popScene();
+		}.bind(this));
 	},
 
 });

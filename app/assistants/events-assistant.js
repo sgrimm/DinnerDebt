@@ -2,6 +2,8 @@ var EventsAssistant = Class.create({
 	initialize: function(stageAssistant) {
 		this.stageAssistant = stageAssistant;
 		this.lastItemTapped = null;
+
+		this.refreshList = this.refreshList.bind(this);
 	},
 
 	setup: function() {
@@ -63,18 +65,18 @@ var EventsAssistant = Class.create({
 	 * For example, key handlers that are observing the document.
 	 */
 	activate: function(event) {
+		this.mgr.activateHandlers();
+	},
+
+	/**
+	 * Refreshes the events list.
+	 */
+	refreshList: function() {
 		var mojo = this.eventsList.mojo;
 		DDEvent.getListLength(function(length) {
 			mojo.setLengthAndInvalidate(length);
 			mojo.revealItem(this.lastItemTapped ? this.lastItemTapped : length - 1);
 		});
-
-		try {
-			this.mgr.activateHandlers();
-		}
-		catch (e) {
-			Mojo.Log.warn(e);
-		}
 	},
 
 	deactivate: function(event) {
@@ -104,7 +106,9 @@ var EventsAssistant = Class.create({
 	 */
 	handleAddTap: function(event) {
 		this.lastItemTapped = null;
-		this.controller.stageController.pushScene('editevent', null, this.stageAssistant);
+		this.controller.stageController.pushScene('editevent', null,
+													this.stageAssistant,
+													this.refreshList);
 	},
 
 	/**
@@ -113,9 +117,9 @@ var EventsAssistant = Class.create({
 	handleEventTap: function(event) {
 		this.lastItemTapped = event.index;
 		event.item.load(function(ddEvent) {
-			Mojo.Log.info("Post-load callback for event", ddEvent.id);
 			this.controller.stageController.pushScene('editevent', ddEvent,
-													this.stageAssistant);
+													this.stageAssistant,
+													this.refreshList);
 		}.bind(this));
 	},
 

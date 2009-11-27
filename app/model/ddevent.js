@@ -341,6 +341,7 @@ var DDEvent = Class.create({
 		} else {
 			this.id = DDEvent.getUnusedId();
 		}
+
 		this.insertIntoList();
 
 		var keep = this.isWorthKeeping();
@@ -349,45 +350,21 @@ var DDEvent = Class.create({
 		// leave it as is.
 		if (this.participations != null) {
 			for (var i = 0; i < this.participations.length; i++) {
-				if (! keep) {
-					this.participations[i].setTotal(0);
-					this.participations[i].isSharing = false;
-				}
 				this.participations[i].save(tx);
 			}
 		}
 
-		if (keep) {
-			tx.executeSql(
-				'INSERT OR REPLACE' +
-					' INTO ddevent (id, description, subtotal, tip_percent,' +
-									' total, date, payer_id)' +
-					' VALUES (?,?,?,?,?,?,?)',
-				[this.id, this.description, this.subtotal, this.tipPercent,
-				 this.total, Math.floor(this.date.getTime() / 1000),
-				 this.payer ? this.payer.id : null],
-				function(tx) {
-					if (onSuccess) {
-						onSuccess(tx);
-					}
-				},
-				DBUtil.logFailure
-			);
-		} else {
-			tx.executeSql(
-				'DELETE FROM ddevent WHERE id = ?',
-				[this.id],
-				function(tx) {
-					this.id = 0;
-					if (onSuccess) {
-						onSuccess(tx);
-					}
-				}.bind(this),
-				DBUtil.logFailure
-			);
-		}
-
-		Person.saveList();
+		tx.executeSql(
+			'INSERT OR REPLACE' +
+				' INTO ddevent (id, description, subtotal, tip_percent,' +
+								' total, date, payer_id)' +
+				' VALUES (?,?,?,?,?,?,?)',
+			[this.id, this.description, this.subtotal, this.tipPercent,
+			 this.total, Math.floor(this.date.getTime() / 1000),
+			 this.payer ? this.payer.id : null],
+			Person.saveList.curry(tx, onSuccess),
+			DBUtil.logFailure
+		);
 	},
 
 	/**
@@ -422,13 +399,25 @@ var DDEvent = Class.create({
 		this.removeFromList();
 
 		db.transaction(function(tx) {
-			// Mark as not worth keeping (see isWorthKeeping())
-			this.setTotal(0);	// this will also debit the payer
-			this.description = null;
+			if (this.participations != null) {
+				for (var i = 0; i < this.participations.length; i++) {
+					this.participations[i].setTotal(0);
+					this.participations[i].isSharing = false;
+					this.participations[i].save(tx);
+				}
+			}
 
-			this.save(tx, function() {
-				Person.saveList(tx, onSuccess);
-			});
+			tx.executeSql(
+				'DELETE FROM ddevent WHERE id = ?',
+				[this.id],
+				function(tx) {
+					this.id = 0;
+					this.setTotal(0);	// this will also debit the payer
+					this.description = null;
+					Person.saveList(tx, onSuccess);
+				}.bind(this),
+				DBUtil.logFailure
+			);
 		}.bind(this));
 	},
 
@@ -528,7 +517,6 @@ DDEvent.migrateFromDepot = function(tx, onSuccess, onFailure) {
 	if (list != null) {
 		var saveEventFromList = function(num) {
 			if (num < list.length) {
-				Mojo.Log.info("Saving event",list[num].description,list[num].date);
 				list[num].save(tx, saveEventFromList.curry(num + 1));
 			} else {
 				DDEvent.list = null;
@@ -549,7 +537,6 @@ DDEvent.migrateFromDepot = function(tx, onSuccess, onFailure) {
 DDEvent.migrateFromDepot.prepare = function(onSuccess, onFailure) {
 	depot.get("ddevents",
 			function(list) {
-				Mojo.Log.info("prepare ddevent");
 				DDEvent.list = [];
 
 				if (list != null) {
