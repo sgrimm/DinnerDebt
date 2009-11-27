@@ -329,27 +329,34 @@ Person.getCount = function(onSuccess) {
  * Recalculates the balances of all people by replaying events.
  */
 Person.recalculateAll = function(onSuccess) {
+	var nextEvent = function(events, num) {
+		if (num < events.length) {
+			var e = events[num];
+			if (e.payer) {
+				e.payer.credit(e.getTotal());
+			}
+
+			e.load(function(e) {
+				var parts = e.participations;
+				if (parts) {
+					parts.each(function(p) {
+						p.person.debit(p.getTotal());
+					});
+				}
+
+				nextEvent.defer(events, num + 1);
+			});
+		} else {
+			Person.saveList.defer(null, onSuccess);
+		}
+	};
+
 	DDEvent.getList(function(events) {
 		// Start over from scratch
 		for (var id in Person.list) {
 			Person.list[id].balance = 0;
 		}
 
-		events.each(function(e) {
-			if (e.payer) {
-				e.payer.credit(e.getTotal());
-			}
-			var parts = e.participations;
-			if (parts) {
-				parts.each(function(p) {
-					p.person.debit(p.getTotal());
-				});
-			}
-		});
-
-		(function() {
-			Person.saveList();
-			onSuccess();
-		}).defer();
+		nextEvent(events, 0);
 	});
 }
