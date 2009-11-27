@@ -274,7 +274,7 @@ var DDEvent = Class.create({
 	 * Returns true if this is an "interesting" event (i.e., it's worth
 	 * saving.)
 	 */
-	isWorthSaving: function() {
+	isWorthKeeping: function() {
 		return this.id != 0 || this.total != 0 || this.description;
 	},
 
@@ -330,7 +330,12 @@ var DDEvent = Class.create({
 	/**
 	 * Saves this event to the database.
 	 */
-	save : function() {
+	save: function(tx, onSuccess) {
+		if (! tx) {
+			return db.transaction(function(tx) {
+					this.save(tx, onSuccess);
+				}.bind(this));
+		}
 		if (this.id != 0) {
 			this.removeFromList();
 		} else {
@@ -338,15 +343,50 @@ var DDEvent = Class.create({
 		}
 		this.insertIntoList();
 
-		// else we were editing the existing list item in place anyway
+		var keep = this.isWorthKeeping();
 
-		db.transaction(function(tx) {
+		// If we've loaded the participations array, save it; otherwise
+		// leave it as is.
+		if (this.participations != null) {
 			for (var i = 0; i < this.participations.length; i++) {
+				if (! keep) {
+					this.participations[i].setTotal(0);
+					this.participations[i].isSharing = false;
+				}
 				this.participations[i].save(tx);
 			}
-		}.bind(this));
+		}
 
-		DDEvent.saveList();
+		if (keep) {
+			tx.executeSql(
+				'INSERT OR REPLACE' +
+					' INTO ddevent (id, description, subtotal, tip_percent,' +
+									' total, date, payer_id)' +
+					' VALUES (?,?,?,?,?,?,?)',
+				[this.id, this.description, this.subtotal, this.tipPercent,
+				 this.total, Math.floor(this.date.getTime() / 1000),
+				 this.payer ? this.payer.id : null],
+				function(tx) {
+					if (onSuccess) {
+						onSuccess(tx);
+					}
+				},
+				DBUtil.logFailure
+			);
+		} else {
+			tx.executeSql(
+				'DELETE FROM ddevent WHERE id = ?',
+				[this.id],
+				function(tx) {
+					this.id = 0;
+					if (onSuccess) {
+						onSuccess(tx);
+					}
+				}.bind(this),
+				DBUtil.logFailure
+			);
+		}
+
 		Person.saveList();
 	},
 
@@ -356,7 +396,7 @@ var DDEvent = Class.create({
 	 * @param callback  Called with this object as a parameter when the
 	 *                  loading is complete.
 	 */
-	load : function(callback) {
+	load: function(callback) {
 		if (this.participations) {
 			// Already loaded; nothing to do.
 			callback(this);
@@ -373,7 +413,7 @@ var DDEvent = Class.create({
 	 * Deletes the current event from the list, undoing all its effects on
 	 * people's balances.
 	 */
-	doDelete: function() {
+	doDelete: function(onSuccess) {
 		if (this.id == 0) {
 			// Not saved yet = nothing to delete
 			return;
@@ -382,20 +422,14 @@ var DDEvent = Class.create({
 		this.removeFromList();
 
 		db.transaction(function(tx) {
-			for (var i = 0; i < this.participations.length; i++) {
-				this.participations[i].setTotal(0);
-				this.participations[i].isSharing = false;
-				this.participations[i].save(tx);	// delete the record
-			}
+			// Mark as not worth keeping (see isWorthKeeping())
+			this.setTotal(0);	// this will also debit the payer
+			this.description = null;
+
+			this.save(tx, function() {
+				Person.saveList(tx, onSuccess);
+			});
 		}.bind(this));
-
-		// Mark as not worth saving (see isWorthSaving())
-		this.setTotal(0);	// this will also debit the payer
-		this.description = null;
-		this.id = 0;
-
-		DDEvent.saveList();
-		Person.saveList();
 	},
 
 });
@@ -415,34 +449,29 @@ DDEvent.getList = function(onSuccess) {
 		return;
 	}
 
-	depot.get("ddevents",
-			function(list) {
+	db.transaction(function(tx) {
+		tx.executeSql(
+			'SELECT id, description, subtotal, tip_percent,' +
+					' total, date, payer_id' +
+				' FROM ddevent' +
+				' ORDER BY date ASC',
+			[],
+			function(tx, result) {
 				DDEvent.list = [];
-				if (list != null) {
-					db.transaction(function(tx) {
-						for (var i = 0; i < list.length; i++) {
-							var e = list[i];
-							new DDEvent(e.id, e.description,
-										  e.subtotal, e.tipPercent, e.total,
-										  new Date(e.date),
-										  null,
-										  Person.get(e.payerId))
-									.insertIntoList();
-
-							// Migrate participations list from legacy records
-							// XXX - remove this at some point
-							if (e.participations) {
-								e.participations.each(function(sp) {
-									Participation.complexify(sp).save(tx);
-								});
-							}
-						}
-					});
-					DDEvent.list = obj;
+				for (var i = 0; i < result.rows.length; i++) {
+					var row = result.rows.item(i);
+					DDEvent.list.push(new DDEvent(
+						row.id, row.description, row.subtotal,
+						row.tip_percent, row.total,
+						new Date(row.date * 1000), null,
+						Person.get(row.payer_id)));
 				}
+
 				onSuccess(DDEvent.list);
 			},
-			function(error) { "Can't load events, code " + error; });
+			DBUtil.logFailure
+		);
+	});
 }
 
 /**
@@ -452,33 +481,6 @@ DDEvent.getList = function(onSuccess) {
  */
 DDEvent.getListLength = function(onSuccess) {
 	onSuccess(DDEvent.list.length);
-}
-
-/**
- * Saves the list of events to the database.
- */
-DDEvent.saveList = function() {
-	// Need to convert the list to a serializable form, i.e.,
-	// a list of name-value-pair lists with no complex values.
-	var serializable = [];
-	for (var i = 0; i < DDEvent.list.length; i++) {
-		var e = DDEvent.list[i];
-
-		serializable.push({
-			id: e.id,
-			description: e.description,
-			subtotal: e.subtotal,
-			tipPercent: e.tipPercent,
-			// XXX - could derive the total at load time
-			total: e.total,
-			date: e.date.getTime(),
-			payerId: e.payer ? e.payer.id : null,
-		});
-	}
-
-	depot.add("ddevents", serializable,
-			function() {},
-			function(error) { throw "Can't save events, error " + error; });
 }
 
 /**
@@ -521,37 +523,58 @@ DDEvent.getRaw = function(id) {
  * DBUtil.updateSchema().
  */
 DDEvent.migrateFromDepot = function(tx, onSuccess, onFailure) {
-	var list = DDEvent.migrateFromDepot.list;
+	var list = DDEvent.list;
+
 	if (list != null) {
-		DBUtil.foreach(list,
-			function(e, tx, feSuccess, feFailure) {
-				Mojo.Log.info("Migrate event", e.description);
-				tx.executeSql(
-					'INSERT INTO ddevent' +
-						' (id, description, subtotal, tip_percent,'+
-						'  total, date, payer_id)' +
-						' VALUES (?,?,?,?,?,?,?)',
-					[e.id, e.description, e.subtotal, e.tipPercent,
-					 e.total, Math.floor(e.date / 1000), e.payerId],
-					feSuccess,	// next array element...
-					function(tx, error) {
-						feFailure("Can't insert event: " +
-									error.message);
-						return true;	// roll back
-					}
-				);
-			},
-			onSuccess,
-			onFailure);
+		var saveEventFromList = function(num) {
+			if (num < list.length) {
+				Mojo.Log.info("Saving event",list[num].description,list[num].date);
+				list[num].save(tx, saveEventFromList.curry(num + 1));
+			} else {
+				DDEvent.list = null;
+				if (onSuccess) {
+					onSuccess(tx);
+				}
+			}
+		};
+
+		saveEventFromList(0);
 	} else {
-		onSuccess();
+		if (onSuccess) {
+			onSuccess(tx);
+		}
 	}
 }
 
 DDEvent.migrateFromDepot.prepare = function(onSuccess, onFailure) {
 	depot.get("ddevents",
 			function(list) {
-				DDEvent.migrateFromDepot.list = list;
+				Mojo.Log.info("prepare ddevent");
+				DDEvent.list = [];
+
+				if (list != null) {
+					list.each(function(e) {
+						// Fix up broken events from data entry bug
+						if (isNaN(e.subtotal)) {
+							e.subtotal = 0;
+						}
+						if (isNaN(e.tipPercent)) {
+							e.tipPercent = 0;
+						}
+						if (isNaN(e.total)) {
+							e.total = 0;
+						}
+
+						DDEvent.list.push(
+							new DDEvent(e.id, e.description,
+										e.subtotal, e.tipPercent, e.total,
+										new Date(e.date),
+										null,
+										// a fake Person just for the id
+										new Person(e.payerId)));
+					});
+				}
+
 				onSuccess();
 			},
 			function(error) {

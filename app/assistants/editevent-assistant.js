@@ -210,7 +210,7 @@ var EditeventAssistant = Class.create({
 	 * a result of being popped off the scene stack.
 	 */
 	cleanup : function(event) {
-		if (this.ddEvent.isWorthSaving()) {
+		if (this.ddEvent.isWorthKeeping()) {
 			this.ddEvent.save();
 		}
 	},

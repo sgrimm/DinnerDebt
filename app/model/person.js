@@ -207,8 +207,8 @@ Person.migrateFromDepot = function(tx, onSuccess, onFailure) {
 		for (var id in list) {
 			var entry = list[id];
 			Person.list[id] = new Person(id, entry.name,
-									entry.balance, entry.position,
-									true);
+									isNaN(entry.balance) ? 0 : entry.balance,
+									entry.position, true);
 		}
 	}
 
