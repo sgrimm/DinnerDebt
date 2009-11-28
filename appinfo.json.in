@@ -2,8 +2,17 @@
 	"id": "com.midwinter.dinnerdebt",
 	"version": "1.0.0",
 	"vendor": "Midwinter",
+	"vendorurl": "http://www.midwinter.com/dinnerdebt/",
 	"type": "web",
 	"main": "index.html",
 	"title": "DinnerDebt",
-	"icon": "icon.png"
+	"icon": "icon.png",
+	"support": {
+		"url": "http://www.midwinter.com/dinnerdebt/",
+		"resources": [{
+			"type": "scene",
+			"label": "Help Topics",
+			"sceneName": "help"
+		}]
+	}
 }

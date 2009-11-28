@@ -5,7 +5,7 @@ var PeopleAssistant = Class.create({
 			items: [
 				{ label: $L('About DinnerDebt...'), command: 'about' },
 				{ label: $L('Recalculate Balances'), command: 'recalculate' },
-				{ label: $L('Help'), command: 'help.people' },
+				{ label: $L('Help'), command: 'help' },
 			]
 		};
 	},
@@ -136,10 +136,6 @@ var PeopleAssistant = Class.create({
 				case 'events':
 					this.controller.stageController.swapScene('events', this.stageAssistant);
 					return;
-
-				case 'help.people':
-					this.controller.stageController.pushScene('help', 'people');
-					break;
 
 				case 'recalculate':
 					var widget = this.peopleListWidget;

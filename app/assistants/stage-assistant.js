@@ -120,4 +120,13 @@ var StageAssistant = Class.create({
 		);
 	},
 
+	handleCommand: function(event) {
+		if (event.type == Mojo.Event.command) {
+			switch (event.command) {
+			case 'help':
+				this.controller.pushAppSupportInfoScene();
+				break;
+			}
+		}
+	},
 });
